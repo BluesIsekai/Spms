@@ -8,7 +8,7 @@
 
 .ui-data-table-mobile {
   display: none;
-  padding: 14px;
+  padding: 16px;
   gap: 12px;
   flex-direction: column;
 }
@@ -17,7 +17,7 @@
   background: #171a20;
   border: 1px solid rgba(60, 73, 78, 0.22);
   border-radius: 12px;
-  padding: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -87,7 +87,7 @@
 }
 
 .ui-data-table th {
-  padding: 12px 16px;
+  padding: 15px 18px;
   text-align: left;
   font-size: 12px;
   font-weight: 700;
@@ -118,7 +118,7 @@
 }
 
 .ui-data-table td {
-  padding: 14px 16px;
+  padding: 18px;
   font-size: 14px;
   color: #e3e2e8;
   text-align: left;

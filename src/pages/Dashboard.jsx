@@ -293,24 +293,32 @@ export default function Dashboard({
     {
       label: 'Virtual Balance',
       value: `₹${walletBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      meta: 'Ready capital',
       status: 'neutral',
     },
     {
       label: 'Portfolio Value',
       value: `₹${portfolioMetrics.portfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      meta: `${holdings.length} active positions`,
       status: 'neutral',
     },
     {
       label: 'Total P/L',
       value: `${portfolioMetrics.totalPnL >= 0 ? '+' : '-'}₹${Math.abs(portfolioMetrics.totalPnL).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      meta: 'Lifetime return',
       status: portfolioMetrics.totalPnL >= 0 ? 'up' : 'down',
     },
     {
       label: "Today's P/L %",
       value: `${portfolioMetrics.todayPnLPct >= 0 ? '+' : ''}${portfolioMetrics.todayPnLPct.toFixed(2)}%`,
+      meta: 'Session movement',
       status: portfolioMetrics.todayPnLPct >= 0 ? 'up' : 'down',
     },
   ];
+
+  const activeQuote = mergedPrices[activeSymbol];
+  const activeMove = Number(activeQuote?.changePct || 0);
+  const marketLive = activeQuote?.marketState === 'REGULAR';
 
   return (
     <div className="dashboard" id="dashboard-page">
@@ -324,11 +332,36 @@ export default function Dashboard({
       />
 
       <div className="dashboard-content">
+        <section className="command-center-strip" aria-label="Dashboard command center">
+          <div className="ccs-left compact">
+            <span className="ccs-app-label">SPMS</span>
+            <span className="ccs-title-compact">Dashboard</span>
+          </div>
+          <div className="ccs-right">
+            <div className="ccs-chip symbol">
+              <span className="chip-label">Active Symbol</span>
+              <strong>{activeSymbol}</strong>
+            </div>
+            <div className={`ccs-chip move ${activeMove >= 0 ? 'up' : 'down'}`}>
+              <span className="chip-label">Session Move</span>
+              <strong>{activeMove >= 0 ? '+' : ''}{activeMove.toFixed(2)}%</strong>
+            </div>
+            <div className={`ccs-chip pulse ${marketLive ? 'live' : 'closed'}`}>
+              <span className="chip-dot" />
+              <strong>{marketLive ? 'Live Session' : 'After Hours'}</strong>
+            </div>
+          </div>
+        </section>
+
         <section className="summary-cards-row" aria-label="Portfolio summary">
           {summaryCards.map((card) => (
             <article key={card.label} className={`summary-card ${card.status}`}>
-              <span className="summary-card-label">{card.label}</span>
+              <div className="summary-card-top">
+                <span className="summary-card-label">{card.label}</span>
+                <span className={`summary-card-dot ${card.status}`} />
+              </div>
               <strong className="summary-card-value">{card.value}</strong>
+              <span className="summary-card-meta">{card.meta}</span>
             </article>
           ))}
         </section>
@@ -343,62 +376,62 @@ export default function Dashboard({
           onSymbolChange={setActiveSymbol}
           onBuy={handleBuy}
           onSell={handleSell}
-        />
+          leftBottom={(
+            <div className="bottom-section">
+              <div className="bottom-tabs" id="bottom-tabs">
+                <button
+                  id="tab-holdings"
+                  className={`bottom-tab${activeTab === 'holdings' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('holdings')}
+                >
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
+                  </svg>
+                  Holdings
+                  <span className="tab-count">{holdings.length}</span>
+                </button>
+                <button
+                  id="tab-transactions"
+                  className={`bottom-tab${activeTab === 'transactions' ? ' active' : ''}`}
+                  onClick={() => setActiveTab('transactions')}
+                >
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <line x1="12" y1="1" x2="12" y2="23"/>
+                    <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                  </svg>
+                  Transactions
+                  <span className="tab-count">{transactions.length}</span>
+                </button>
 
-        {/* Bottom holdings / transactions */}
-        <div className="bottom-section">
-          <div className="bottom-tabs" id="bottom-tabs">
-            <button
-              id="tab-holdings"
-              className={`bottom-tab${activeTab === 'holdings' ? ' active' : ''}`}
-              onClick={() => setActiveTab('holdings')}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
-              </svg>
-              Holdings
-              <span className="tab-count">{holdings.length}</span>
-            </button>
-            <button
-              id="tab-transactions"
-              className={`bottom-tab${activeTab === 'transactions' ? ' active' : ''}`}
-              onClick={() => setActiveTab('transactions')}
-            >
-              <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <line x1="12" y1="1" x2="12" y2="23"/>
-                <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-              </svg>
-              Transactions
-              <span className="tab-count">{transactions.length}</span>
-            </button>
+                <div className="portfolio-value-strip">
+                  <span className="pvs-label">Portfolio</span>
+                  <span className="pvs-value">
+                    ₹{portfolioMetrics.portfolioValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
 
-            <div className="portfolio-value-strip">
-              <span className="pvs-label">Portfolio</span>
-              <span className="pvs-value">
-                ₹{portfolioMetrics.portfolioValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
+              <div className="bottom-content">
+                {activeTab === 'holdings' ? (
+                  <PortfolioTable
+                    holdings={holdings}
+                    livePrices={livePriceMap}
+                    liveQuotes={mergedPrices}
+                    fxRates={fxRates}
+                    onSelectSymbol={setActiveSymbol}
+                    onEmptyCta={() => {
+                      setActiveTab('holdings');
+                      setActiveSymbol(DEFAULT_WATCHLIST[0].symbol);
+                      document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }}
+                  />
+                ) : (
+                  <TransactionsTable transactions={transactions} />
+                )}
+              </div>
             </div>
-          </div>
-
-          <div className="bottom-content">
-            {activeTab === 'holdings' ? (
-              <PortfolioTable
-                holdings={holdings}
-                livePrices={livePriceMap}
-                liveQuotes={mergedPrices}
-                fxRates={fxRates}
-                onSelectSymbol={setActiveSymbol}
-                onEmptyCta={() => {
-                  setActiveTab('holdings');
-                  setActiveSymbol(DEFAULT_WATCHLIST[0].symbol);
-                  document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }}
-              />
-            ) : (
-              <TransactionsTable transactions={transactions} />
-            )}
-          </div>
-        </div>
+          )}
+        />
       </div>
     </div>
   );

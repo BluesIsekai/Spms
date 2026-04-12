@@ -4,15 +4,6 @@ import { formatMarketCap, formatVolume, currencySymbol, getHistoricalData } from
 import { isIndex } from '../../utils/stockHelpers';
 import './StockPanel.css';
 
-// Top Indian stocks shown as quick-access tabs
-const POPULAR_SYMBOLS = [
-  'RELIANCE.NS',
-  'TCS.NS',
-  'INFY.NS',
-  'HDFCBANK.NS',
-  'SBIN.NS',
-];
-
 /**
  * Main stock info + chart panel.
  *
@@ -25,7 +16,7 @@ const POPULAR_SYMBOLS = [
  *  onBuy           {fn(symbol, qty, price)}
  *  onSell          {fn(symbol, qty, price)}
  */
-export default function StockPanel({ symbol, quote, availableBalance = 0, onSymbolChange, onBuy, onSell }) {
+export default function StockPanel({ symbol, quote, availableBalance = 0, onSymbolChange, onBuy, onSell, leftBottom = null }) {
   const [orderQty, setOrderQty]       = useState('');
   const [tradeLoading, setTradeLoading] = useState(false);
   const [trend, setTrend] = useState(null);
@@ -42,7 +33,6 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
   const volume     = quote?.volume    ?? 0;
   const currency   = quote?.currency  ?? 'INR';
   const name       = quote?.name      ?? '';
-  const marketState = quote?.marketState ?? 'CLOSED';
 
   const sym        = currencySymbol(currency);
   const isUp       = change >= 0;
@@ -138,27 +128,6 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
 
   return (
     <div className="stock-panel-wrapper">
-      {/* Symbol quick-access tabs */}
-      <div className="symbol-tabs" id="symbol-tabs">
-        {POPULAR_SYMBOLS.map((sym) => (
-          <button
-            key={sym}
-            id={`tab-${sym.replace('.', '-')}`}
-            className={`sym-tab${symbol === sym ? ' active' : ''}`}
-            onClick={() => onSymbolChange?.(sym)}
-          >
-            {/* Show short version e.g. RELIANCE instead of RELIANCE.NS */}
-            {sym.split('.')[0]}
-          </button>
-        ))}
-        <div className="tab-spacer" />
-        {/* Market state badge */}
-        <div className={`market-state-badge ${marketState === 'REGULAR' ? 'open' : 'closed'}`}>
-          <span className="msb-dot" />
-          {marketState === 'REGULAR' ? 'Market Open' : 'Market Closed'}
-        </div>
-      </div>
-
       {/* Main layout */}
       <div className="panel-main">
         {/* Left: chart section */}
@@ -179,7 +148,44 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
           </div>
 
           {/* Chart — passes price for live-tick nudge */}
-          <StockChart symbol={symbol} livePrice={price} height={400} />
+          <StockChart symbol={symbol} livePrice={price} height={440} />
+
+          <div className="trend-card trend-card-inline">
+            <div className="trend-card-head">
+              <span className="trend-title">Trend Analysis</span>
+              <span className={`trend-badge ${trend?.direction?.toLowerCase() || 'neutral'}`}>
+                {trendLoading ? 'Analyzing' : trend?.direction || 'N/A'}
+              </span>
+            </div>
+
+            <div className="trend-metrics">
+              <div className="trend-row">
+                <span className="trend-label">Confidence Factor</span>
+                <span className="trend-val">{trend ? `${trend.confidence.toFixed(0)}%` : '—'}</span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Momentum Engine</span>
+                <span className={`trend-val ${trend?.momentumPct >= 0 ? 'up' : 'down'}`}>
+                  {trend ? `${trend.momentumPct >= 0 ? '+' : ''}${trend.momentumPct.toFixed(2)}%` : '—'}
+                </span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Execution Signal</span>
+                <span className="trend-val">{trend?.signal || '—'}</span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Recommendation</span>
+                <span className="trend-val rec">{trend?.recommendation || '—'}</span>
+              </div>
+            </div>
+
+            <div className="trend-ma-row">
+              <span>MA5: {trend ? `${sym}${trend.ma5.toFixed(2)}` : '—'}</span>
+              <span>MA20: {trend ? `${sym}${trend.ma20.toFixed(2)}` : '—'}</span>
+            </div>
+          </div>
+
+          {leftBottom && <div className="left-bottom-slot">{leftBottom}</div>}
         </div>
 
         {/* Right: stats + order panel */}
@@ -213,42 +219,6 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
                 </div>
               </>
             )}
-          </div>
-
-          <div className="panel-divider" />
-          <div className="trend-card">
-            <div className="trend-card-head">
-              <span className="trend-title">Trend Analysis</span>
-              <span className={`trend-badge ${trend?.direction?.toLowerCase() || 'neutral'}`}>
-                {trendLoading ? 'Analyzing' : trend?.direction || 'N/A'}
-              </span>
-            </div>
-
-            <div className="trend-metrics">
-              <div className="trend-row">
-                <span className="trend-label">Confidence Factor</span>
-                <span className="trend-val">{trend ? `${trend.confidence.toFixed(0)}%` : '—'}</span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Momentum Engine</span>
-                <span className={`trend-val ${trend?.momentumPct >= 0 ? 'up' : 'down'}`}>
-                  {trend ? `${trend.momentumPct >= 0 ? '+' : ''}${trend.momentumPct.toFixed(2)}%` : '—'}
-                </span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Execution Signal</span>
-                <span className="trend-val">{trend?.signal || '—'}</span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Recommendation</span>
-                <span className="trend-val rec">{trend?.recommendation || '—'}</span>
-              </div>
-            </div>
-
-            <div className="trend-ma-row">
-              <span>MA5: {trend ? `${sym}${trend.ma5.toFixed(2)}` : '—'}</span>
-              <span>MA20: {trend ? `${sym}${trend.ma20.toFixed(2)}` : '—'}</span>
-            </div>
           </div>
 
           {/* Show Order Form strictly for equities */}
@@ -310,6 +280,7 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
               </div>
             </>
           )}
+
         </div>
       </div>
     </div>

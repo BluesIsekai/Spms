@@ -1,7 +1,7 @@
 /* Shared card styles across all pages */
 .ui-card {
   background: #1a1b20;
-  padding: 24px;
+  padding: 26px;
   border-radius: 12px;
   border: 1px solid rgba(60, 73, 78, 0.3);
   transition: all 0.2s ease;

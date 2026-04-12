@@ -6,109 +6,25 @@
   flex: 1;
   min-height: 0;
   background: #0f131e;
+  padding: 0 24px;
 }
-
-/* Symbol tabs */
-.symbol-tabs {
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  border-bottom: 1px solid rgba(60, 73, 78, 0.25);
-  background: #0d0e12;
-  gap: 2px;
-  flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.symbol-tabs::-webkit-scrollbar { display: none; }
-
-.sym-tab {
-  padding: 12px 18px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #859398;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: 'Inter', system-ui, sans-serif;
-  cursor: pointer;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-  margin-bottom: -1px;
-}
-
-.sym-tab:hover {
-  color: #a8e8ff;
-  background: rgba(0, 212, 255, 0.04);
-}
-
-.sym-tab.active {
-  color: #00d4ff;
-  border-bottom-color: #00d4ff;
-}
-
-.tab-spacer { flex: 1; }
-
-/* Market state badge */
-.market-state-badge {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: 0.5px;
-  background: rgba(255, 71, 87, 0.08);
-  border: 1px solid rgba(255, 71, 87, 0.25);
-  color: #ff4757;
-  margin-right: 4px;
-  white-space: nowrap;
-}
-
-.market-state-badge.open {
-  background: rgba(0, 200, 150, 0.08);
-  border-color: rgba(0, 200, 150, 0.25);
-  color: #00c896;
-}
-
-.msb-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff4757;
-  flex-shrink: 0;
-}
-
-.market-state-badge.open .msb-dot {
-  background: #00c896;
-  animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 200, 150, 0.4); }
-  50%       { opacity: 0.7; box-shadow: 0 0 0 4px rgba(0, 200, 150, 0); }
-}
-
 
 /* Main layout */
 .panel-main {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.75fr);
   flex: 1;
-  gap: 20px;
-  padding: 6px 20px 16px;
+  gap: 24px;
+  padding: 8px 0 6px;
   min-height: 0;
   overflow: auto;
 }
 
 /* Chart section */
 .chart-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   min-width: 0;
 }
 
@@ -162,7 +78,7 @@
 
 .cph-price {
   display: block;
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   color: #e3e2e8;
   font-family: 'Inter', system-ui, sans-serif;
@@ -183,14 +99,13 @@
 
 /* Info panel */
 .info-panel {
-  width: 332px;
-  flex-shrink: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0;
   background: linear-gradient(165deg, rgba(23, 27, 38, 0.96), rgba(15, 19, 30, 0.96));
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 14px;
+  padding: 22px;
   border: 1px solid rgba(67, 70, 86, 0.18);
   max-height: 100%;
   overflow-y: auto;
@@ -231,17 +146,25 @@
 .panel-divider {
   height: 1px;
   background: rgba(67, 70, 86, 0.24);
-  margin: 18px 0;
+  margin: 20px 0;
 }
 
 .trend-card {
   background: linear-gradient(160deg, rgba(27, 31, 43, 0.96), rgba(19, 23, 34, 0.96));
   border: 1px solid rgba(67, 70, 86, 0.18);
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 11px;
+}
+
+.trend-card-inline {
+  margin-top: 2px;
+}
+
+.left-bottom-slot {
+  margin-top: 2px;
 }
 
 .trend-card-head {
@@ -348,7 +271,7 @@
 .order-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .of-header {
@@ -508,7 +431,9 @@
 
 @media (max-width: 1180px) {
   .panel-main {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding-top: 10px;
   }
 
   .info-panel {
@@ -516,15 +441,19 @@
     max-height: none;
     overflow: visible;
   }
+
+  .cph-price {
+    font-size: 28px;
+  }
 }
 
 @media (max-width: 1023px) {
-  .symbol-tabs {
-    padding: 0 16px;
+  .stock-panel-wrapper {
+    padding: 0 14px;
   }
 
   .panel-main {
-    padding: 6px 16px 16px;
+    padding: 6px 0 16px;
   }
 
   .chart-price-header {
@@ -534,20 +463,16 @@
   .info-panel {
     padding: 18px;
   }
+
 }
 
 @media (max-width: 767px) {
-  .symbol-tabs {
-    padding: 0 12px;
-  }
-
-  .sym-tab {
-    padding: 11px 14px;
-    font-size: 12px;
+  .stock-panel-wrapper {
+    padding: 0 10px;
   }
 
   .panel-main {
-    padding: 6px 12px 14px;
+    padding: 6px 0 14px;
     gap: 14px;
   }
 
@@ -569,7 +494,7 @@
   }
 
   .info-panel {
-    padding: 16px;
+    padding: 14px;
   }
 
   .trend-card {

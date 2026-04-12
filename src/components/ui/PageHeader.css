@@ -1,8 +1,8 @@
 /* Page header styles */
 .ui-page-header {
-  margin-bottom: 30px;
+  margin-bottom: 34px;
   border-bottom: 1px solid rgba(60, 73, 78, 0.3);
-  padding-bottom: 20px;
+  padding-bottom: 22px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
