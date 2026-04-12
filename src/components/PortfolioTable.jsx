@@ -1,4 +1,5 @@
 import './PortfolioTable.css';
+import { convertToINR, formatAmount, inferCurrencyFromSymbol } from '../utils/currency';
 
 function formatINR(value) {
   const num = Number(value || 0);
@@ -12,7 +13,7 @@ function formatINR(value) {
  *  - livePrices {{ [symbol]: number }}
  *  - onSelectSymbol {function}
  */
-export default function PortfolioTable({ holdings = [], livePrices = {}, onSelectSymbol, onEmptyCta }) {
+export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuotes = {}, fxRates = {}, onSelectSymbol, onEmptyCta }) {
   if (holdings.length === 0) {
     return (
       <div className="portfolio-empty" id="portfolio-table-empty">
@@ -49,11 +50,14 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, onSelec
           {holdings.map((h) => {
             const quantity = Number(h.quantity || 0);
             const avgBuyPrice = Number(h.average_buy_price || 0);
-            const current = Number(livePrices[h.stock_symbol] || avgBuyPrice);
-            const pl = (current - avgBuyPrice) * quantity;
+            const quote = liveQuotes[h.stock_symbol] || {};
+            const currency = quote.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+            const current = Number(quote.price || livePrices[h.stock_symbol] || avgBuyPrice);
+            const plNative = (current - avgBuyPrice) * quantity;
             const plPct = avgBuyPrice > 0 ? ((current - avgBuyPrice) / avgBuyPrice) * 100 : 0;
-            const value = current * quantity;
-            const isUp = pl >= 0;
+            const valueInInr = convertToINR(current * quantity, currency, fxRates);
+            const plInInr = convertToINR(plNative, currency, fxRates);
+            const isUp = plInInr >= 0;
 
             return (
               <tr
@@ -66,15 +70,15 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, onSelec
                   <span className="symbol-badge">{h.stock_symbol}</span>
                 </td>
                 <td className="align-right tabular">{quantity.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-                <td className="align-right tabular">{formatINR(avgBuyPrice)}</td>
-                <td className="align-right tabular">{formatINR(current)}</td>
+                <td className="align-right tabular">{formatAmount(avgBuyPrice, currency)}</td>
+                <td className="align-right tabular">{formatAmount(current, currency)}</td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
-                  {isUp ? '+' : '-'}{formatINR(Math.abs(pl))}
+                  {isUp ? '+' : '-'}{formatINR(Math.abs(plInInr))}
                 </td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
                   {isUp ? '+' : ''}{plPct.toFixed(2)}%
                 </td>
-                <td className="align-right tabular bold">{formatINR(value)}</td>
+                <td className="align-right tabular bold">{formatINR(valueInInr)}</td>
               </tr>
             );
           })}

@@ -7,6 +7,8 @@ import { useStockPolling } from './hooks/useStockPolling';
 import { useAuth } from './hooks/useAuth.jsx';
 import { fetchHoldings, subscribeHoldings } from './services/portfolioService';
 import { supabase } from './services/supabaseClient';
+import { getFxRatesToINR } from './services/yahooStockApi';
+import { convertToINR, inferCurrencyFromSymbol } from './utils/currency';
 import Portfolio from './pages/Portfolio';
 import Watchlist from './pages/Watchlist';
 import Transactions from './pages/Transactions';
@@ -44,6 +46,7 @@ function getPageFromPath(pathname) {
 function App() {
   const [activeSymbol, setActiveSymbol] = useState('RELIANCE.NS');
   const [holdings, setHoldings] = useState([]);
+  const [fxRates, setFxRates] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -102,18 +105,31 @@ function App() {
       price:     prices[item.symbol]?.price     ?? 0,
       change:    prices[item.symbol]?.change    ?? 0,
       changePct: prices[item.symbol]?.changePct ?? 0,
+      currency:  prices[item.symbol]?.currency  ?? inferCurrencyFromSymbol(item.symbol, 'INR'),
     })),
     [prices]
   );
+
+  useEffect(() => {
+    const currencies = holdings
+      .map((h) => prices[h.stock_symbol]?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD'))
+      .filter(Boolean);
+
+    getFxRatesToINR(currencies)
+      .then((rates) => setFxRates(rates || {}))
+      .catch(() => setFxRates({}));
+  }, [holdings, prices]);
 
   const sidebarPortfolioValue = useMemo(() => {
     return holdings.reduce((sum, h) => {
       const qty = Number(h.quantity || 0);
       const avgBuy = Number(h.average_buy_price || 0);
-      const live = Number(prices[h.stock_symbol]?.price || avgBuy);
-      return sum + qty * live;
+      const quote = prices[h.stock_symbol];
+      const live = Number(quote?.price || avgBuy);
+      const currency = quote?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+      return sum + convertToINR(qty * live, currency, fxRates);
     }, 0);
-  }, [holdings, prices]);
+  }, [holdings, prices, fxRates]);
 
   const handleNavigate = (page) => {
     if (page === 'dashboard') navigate('/dashboard');

@@ -7,7 +7,9 @@ import {
 import { fetchWallet, subscribeWallet } from '../services/walletService';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { getFxRatesToINR } from '../services/yahooStockApi';
 import { formatCurrency, formatPercent, getStatusClass } from '../constants/designTokens';
+import { convertToINR, inferCurrencyFromSymbol } from '../utils/currency';
 import PageHeader from '../components/ui/PageHeader';
 import SummaryCard from '../components/ui/SummaryCard';
 import DataTable from '../components/ui/DataTable';
@@ -21,6 +23,7 @@ export default function Portfolio() {
   const [holdings, setHoldings] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fxRates, setFxRates] = useState({});
 
   useEffect(() => {
     if (!userId) {
@@ -61,6 +64,16 @@ export default function Portfolio() {
   const heldSymbols = useMemo(() => holdings.map((h) => h.stock_symbol), [holdings]);
   const { prices } = useStockPolling(heldSymbols, 10000);
 
+  useEffect(() => {
+    const currencies = holdings
+      .map((h) => prices[h.stock_symbol]?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD'))
+      .filter(Boolean);
+
+    getFxRatesToINR(currencies)
+      .then((rates) => setFxRates(rates || {}))
+      .catch(() => setFxRates({}));
+  }, [holdings, prices]);
+
   const stats = useMemo(() => {
     let totalInvested = 0;
     let totalCurrentValue = 0;
@@ -69,13 +82,15 @@ export default function Portfolio() {
     holdings.forEach((h) => {
       const qty = h.quantity || 0;
       const buyPrice = h.average_buy_price || 0;
-      const livePrice = prices[h.stock_symbol]?.price || buyPrice;
-      const change = prices[h.stock_symbol]?.change || 0;
+      const quote = prices[h.stock_symbol] || {};
+      const livePrice = quote.price || buyPrice;
+      const change = quote.change || 0;
+      const currency = quote.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
       const previousPrice = Math.max(livePrice - change, 0);
       
-      totalInvested += qty * buyPrice;
-      totalCurrentValue += qty * livePrice;
-      previousCloseValue += qty * previousPrice;
+      totalInvested += convertToINR(qty * buyPrice, currency, fxRates);
+      totalCurrentValue += convertToINR(qty * livePrice, currency, fxRates);
+      previousCloseValue += convertToINR(qty * previousPrice, currency, fxRates);
     });
 
     const totalProfitLoss = totalCurrentValue - totalInvested;
@@ -88,7 +103,7 @@ export default function Portfolio() {
       totalProfitLoss,
       dailyPnLPct,
     };
-  }, [holdings, prices]);
+  }, [holdings, prices, fxRates]);
 
   if (loading) return <div className="page-loading">Loading portfolio...</div>;
 
@@ -98,9 +113,13 @@ export default function Portfolio() {
 
   // Transform holdings data for DataTable component
   const tableRows = holdings.map((h) => {
-    const livePrice = prices[h.stock_symbol]?.price || h.average_buy_price;
-    const invested = h.quantity * h.average_buy_price;
-    const value = h.quantity * livePrice;
+    const quote = prices[h.stock_symbol] || {};
+    const currency = quote.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+    const livePrice = quote.price || h.average_buy_price;
+    const investedNative = h.quantity * h.average_buy_price;
+    const valueNative = h.quantity * livePrice;
+    const invested = convertToINR(investedNative, currency, fxRates);
+    const value = convertToINR(valueNative, currency, fxRates);
     const pnl = value - invested;
     const pnlPct = invested > 0 ? (pnl / invested) * 100 : 0;
 
@@ -109,8 +128,8 @@ export default function Portfolio() {
       symbol: h.stock_symbol,
       company: h.company_name || h.stock_symbol.replace('.NS', ''),
       quantity: Number(h.quantity).toFixed(2),
-      avgBuyPrice: formatCurrency(h.average_buy_price),
-      livePrice: formatCurrency(livePrice),
+      avgBuyPrice: formatCurrency(h.average_buy_price, currency),
+      livePrice: formatCurrency(livePrice, currency),
       currentValue: formatCurrency(value),
       pnl: formatCurrency(pnl),
       pnlPct: formatPercent(pnlPct),

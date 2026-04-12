@@ -223,3 +223,42 @@ export function currencySymbol(currency) {
   const map = { INR: '₹', USD: '$', GBP: '£', EUR: '€', JPY: '¥' };
   return map[currency] ?? currency + ' ';
 }
+
+const fxRateCache = new Map();
+
+export async function getFxRateToINR(currency = 'INR') {
+  if (!currency || currency === 'INR') return 1;
+
+  const cacheKey = `${currency}_INR`;
+  const cached = fxRateCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 5 * 60 * 1000) {
+    return cached.rate;
+  }
+
+  try {
+    const fxQuote = await getQuote(`${currency}INR=X`);
+    const rate = Number(fxQuote?.price || 0);
+    if (Number.isFinite(rate) && rate > 0) {
+      fxRateCache.set(cacheKey, { rate, ts: Date.now() });
+      return rate;
+    }
+  } catch (_) {
+    // Fall through to safe default.
+  }
+
+  return 1;
+}
+
+export async function getFxRatesToINR(currencies = []) {
+  const unique = [...new Set((currencies || []).filter(Boolean))].filter((c) => c !== 'INR');
+  if (!unique.length) return {};
+
+  const settled = await Promise.allSettled(unique.map((c) => getFxRateToINR(c)));
+  const result = {};
+  settled.forEach((item, idx) => {
+    if (item.status === 'fulfilled') {
+      result[unique[idx]] = Number(item.value || 1);
+    }
+  });
+  return result;
+}

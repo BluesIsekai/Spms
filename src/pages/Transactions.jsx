@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchTransactions, subscribeTransactions } from '../services/portfolioService';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { formatCurrency, getStatusClass } from '../constants/designTokens';
+import { inferCurrencyFromSymbol } from '../utils/currency';
 import PageHeader from '../components/ui/PageHeader';
 import DataTable from '../components/ui/DataTable';
 import Card from '../components/ui/Card';
@@ -59,12 +60,13 @@ export default function Transactions() {
 
   // Transform transactions data for DataTable component
   const tableRows = filteredTransactions.map((tx) => ({
+    priceCurrency: inferCurrencyFromSymbol(tx.stock_symbol, 'USD'),
     id: tx.id,
     date: new Date(tx.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }),
     symbol: tx.stock_symbol,
     action: tx.transaction_type,
     quantity: Number(tx.quantity).toFixed(2),
-    price: formatCurrency(tx.price),
+    price: formatCurrency(tx.price, inferCurrencyFromSymbol(tx.stock_symbol, 'USD')),
     totalAmount: formatCurrency(tx.total_amount),
     actionStatus: getStatusClass(tx.transaction_type === 'BUY' ? 1 : -1),
   }));

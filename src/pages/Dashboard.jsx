@@ -5,7 +5,7 @@ import PortfolioTable from '../components/PortfolioTable';
 import TransactionsTable from '../components/TransactionsTable';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { getQuote } from '../services/yahooStockApi';
+import { getFxRatesToINR, getQuote } from '../services/yahooStockApi';
 import {
   fetchHoldings,
   fetchTransactions,
@@ -15,6 +15,7 @@ import {
 } from '../services/portfolioService';
 import { fetchWallet, subscribeWallet } from '../services/walletService';
 import { supabase } from '../services/supabaseClient';
+import { convertToINR, inferCurrencyFromSymbol } from '../utils/currency';
 import './Dashboard.css';
 
 const DEFAULT_BALANCE = 100000;
@@ -44,6 +45,7 @@ export default function Dashboard({
   const [wallet, setWallet]             = useState(null);
   const [activeTab, setActiveTab]       = useState('holdings');
   const [tradeError, setTradeError]     = useState('');
+  const [fxRates, setFxRates]           = useState({});
 
   // Dashboard-specific polling: For any holdings that are not already covered in appPrices
   const heldSymbols = useMemo(() => holdings.map((h) => h.stock_symbol), [holdings]);
@@ -58,6 +60,16 @@ export default function Dashboard({
   const mergedPrices = useMemo(() => {
     return { ...dashboardPrices, ...appPrices };
   }, [dashboardPrices, appPrices]);
+
+  useEffect(() => {
+    const currencies = holdings
+      .map((h) => mergedPrices[h.stock_symbol]?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD'))
+      .filter(Boolean);
+
+    getFxRatesToINR(currencies)
+      .then((rates) => setFxRates(rates || {}))
+      .catch(() => setFxRates({}));
+  }, [holdings, mergedPrices]);
 
   // ── Portfolio data from Supabase (or demo fallback) ──────────────────────
   useEffect(() => {
@@ -102,16 +114,22 @@ export default function Dashboard({
   // ── Derived values ────────────────────────────────────────────────────────
 
   const portfolioMetrics = useMemo(() => {
-    const invested = holdings.reduce((sum, h) => sum + Number(h.average_buy_price) * Number(h.quantity), 0);
+    const invested = holdings.reduce((sum, h) => {
+      const currency = mergedPrices[h.stock_symbol]?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+      const value = Number(h.average_buy_price) * Number(h.quantity);
+      return sum + convertToINR(value, currency, fxRates);
+    }, 0);
     const portfolioValue = holdings.reduce((sum, h) => {
       const p = mergedPrices[h.stock_symbol]?.price ?? Number(h.average_buy_price);
-      return sum + p * Number(h.quantity);
+      const currency = mergedPrices[h.stock_symbol]?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+      return sum + convertToINR(p * Number(h.quantity), currency, fxRates);
     }, 0);
     const previousCloseValue = holdings.reduce((sum, h) => {
       const quote = mergedPrices[h.stock_symbol];
       const current = quote?.price ?? Number(h.average_buy_price);
       const previous = quote?.prevClose ?? (quote ? current - (quote.change ?? 0) : Number(h.average_buy_price));
-      return sum + previous * Number(h.quantity);
+      const currency = quote?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+      return sum + convertToINR(previous * Number(h.quantity), currency, fxRates);
     }, 0);
 
     const totalPnL = portfolioValue - invested;
@@ -124,7 +142,7 @@ export default function Dashboard({
       totalPnL,
       todayPnLPct,
     };
-  }, [holdings, mergedPrices]);
+  }, [holdings, mergedPrices, fxRates]);
 
   const walletBalance = Number(wallet?.virtual_balance ?? DEFAULT_BALANCE);
 
@@ -156,9 +174,21 @@ export default function Dashboard({
       setTradeError('');
       const latestQuote = await getQuote(symbol);
       const marketPrice = Number(latestQuote?.price || 0);
+      const assetCurrency = latestQuote?.currency || inferCurrencyFromSymbol(symbol, 'USD');
+      const rates = await getFxRatesToINR([assetCurrency]);
+      const fxRateToInr = assetCurrency === 'INR' ? 1 : Number(rates[assetCurrency] || 1);
       if (!marketPrice) throw new Error('Unable to fetch live market price.');
 
-      await recordTransaction({ userId: user.id, symbol, type: 'BUY', quantity: qty, price: marketPrice });
+      await recordTransaction({
+        userId: user.id,
+        symbol,
+        type: 'BUY',
+        quantity: qty,
+        price: marketPrice,
+        assetCurrency,
+        fxRateToInr,
+        companyName: latestQuote?.name || symbol,
+      });
       await refreshPortfolioState();
     } catch (err) {
       setTradeError(err.message || 'Buy order failed.');
@@ -175,9 +205,21 @@ export default function Dashboard({
       setTradeError('');
       const latestQuote = await getQuote(symbol);
       const marketPrice = Number(latestQuote?.price || 0);
+      const assetCurrency = latestQuote?.currency || inferCurrencyFromSymbol(symbol, 'USD');
+      const rates = await getFxRatesToINR([assetCurrency]);
+      const fxRateToInr = assetCurrency === 'INR' ? 1 : Number(rates[assetCurrency] || 1);
       if (!marketPrice) throw new Error('Unable to fetch live market price.');
 
-      await recordTransaction({ userId: user.id, symbol, type: 'SELL', quantity: qty, price: marketPrice });
+      await recordTransaction({
+        userId: user.id,
+        symbol,
+        type: 'SELL',
+        quantity: qty,
+        price: marketPrice,
+        assetCurrency,
+        fxRateToInr,
+        companyName: latestQuote?.name || symbol,
+      });
       await refreshPortfolioState();
     } catch (err) {
       setTradeError(err.message || 'Sell order failed.');
@@ -279,6 +321,8 @@ export default function Dashboard({
               <PortfolioTable
                 holdings={holdings}
                 livePrices={livePriceMap}
+                liveQuotes={mergedPrices}
+                fxRates={fxRates}
                 onSelectSymbol={setActiveSymbol}
                 onEmptyCta={() => {
                   setActiveTab('holdings');

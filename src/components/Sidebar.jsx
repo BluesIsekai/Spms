@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatAmount } from '../utils/currency';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -136,7 +137,7 @@ export default function Sidebar({ activePage, onNavigate, watchlist = [], totalV
                       <span className="wi-name">{item.name || ''}</span>
                     </div>
                     <div className="wi-right">
-                      <span className="wi-price">₹{(item.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span className="wi-price">{formatAmount(item.price || 0, item.currency || 'INR')}</span>
                       <span className={`wi-change ${isUp ? 'up' : 'down'}`}>
                         {isUp ? '+' : ''}{((item.changePct ?? item.change) || 0).toFixed(2)}%
                       </span>

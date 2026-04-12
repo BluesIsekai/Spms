@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { inferCurrencyFromSymbol } from '../utils/currency';
 
 /** Throw a clear error if called without Supabase configured. */
 function requireSupabase() {
@@ -74,7 +75,7 @@ export async function fetchTransactions(userId, limit = 50) {
  * Record a buy or sell transaction and update the holding and paper wallet.
  * @param {'BUY'|'SELL'} type
  */
-export async function recordTransaction({ userId, symbol, type, quantity, price }) {
+export async function recordTransaction({ userId, symbol, type, quantity, price, assetCurrency = null, fxRateToInr = 1, companyName = null }) {
   requireSupabase();
   const normalizedType = String(type || '').toUpperCase();
   if (normalizedType !== 'BUY' && normalizedType !== 'SELL') {
@@ -90,7 +91,9 @@ export async function recordTransaction({ userId, symbol, type, quantity, price 
     throw new Error('Price must be a positive number.');
   }
 
-  const totalAmount = normalizedQuantity * normalizedPrice;
+  const resolvedCurrency = assetCurrency || inferCurrencyFromSymbol(symbol, 'USD');
+  const normalizedFxRate = resolvedCurrency === 'INR' ? 1 : Number(fxRateToInr || 1);
+  const totalAmount = normalizedQuantity * normalizedPrice * normalizedFxRate;
 
   // 1. Fetch wallet to deduct/add balance
   const { data: walletData, error: walletQueryError } = await supabase
@@ -154,7 +157,7 @@ export async function recordTransaction({ userId, symbol, type, quantity, price 
       symbol,
       quantity: newQty,
       averageBuyPrice: newAvg,
-      companyName: existing?.company_name || symbol.replace('.NS', ''),
+      companyName: companyName || existing?.company_name || symbol.replace('.NS', ''),
     });
   } else if (normalizedType === 'SELL') {
     const newQty = Number(existing?.quantity || 0) - normalizedQuantity;
@@ -166,7 +169,7 @@ export async function recordTransaction({ userId, symbol, type, quantity, price 
         symbol,
         quantity: newQty,
         averageBuyPrice: existing.average_buy_price,
-        companyName: existing.company_name || symbol.replace('.NS', ''),
+        companyName: companyName || existing.company_name || symbol.replace('.NS', ''),
       });
     }
   }

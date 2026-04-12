@@ -110,8 +110,11 @@ export const TRANSITIONS = {
 };
 
 // Helper function to format currency (Indian Rupees)
-export function formatCurrency(value) {
-  return `₹${Number(value || 0).toLocaleString('en-IN', {
+export function formatCurrency(value, currency = 'INR') {
+  const symbolMap = { INR: '₹', USD: '$', GBP: '£', EUR: '€', JPY: '¥' };
+  const symbol = symbolMap[currency] || `${currency} `;
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+  return `${symbol}${Number(value || 0).toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;

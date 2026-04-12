@@ -1,8 +1,17 @@
 import './PortfolioTable.css';
+import { inferCurrencyFromSymbol } from '../utils/currency';
 
 function formatINR(value) {
   const num = Number(value || 0);
   return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatByCurrency(value, currency = 'INR') {
+  const num = Number(value || 0);
+  const map = { INR: '₹', USD: '$', GBP: '£', EUR: '€', JPY: '¥' };
+  const symbol = map[currency] || `${currency} `;
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+  return `${symbol}${num.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
@@ -36,7 +45,9 @@ export default function TransactionsTable({ transactions = [] }) {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((tx) => (
+          {transactions.map((tx) => {
+            const priceCurrency = inferCurrencyFromSymbol(tx.stock_symbol, 'USD');
+            return (
             <tr key={tx.id} id={`tx-row-${tx.id}`} className="table-row">
               <td>
                 <span className={`type-badge ${tx.transaction_type === 'BUY' ? 'buy' : 'sell'}`}>
@@ -45,7 +56,7 @@ export default function TransactionsTable({ transactions = [] }) {
               </td>
               <td><span className="symbol-badge">{tx.stock_symbol}</span></td>
               <td className="align-right tabular">{Number(tx.quantity || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
-              <td className="align-right tabular">{formatINR(tx.price)}</td>
+              <td className="align-right tabular">{formatByCurrency(tx.price, priceCurrency)}</td>
               <td className="align-right tabular bold">{formatINR(tx.total_amount)}</td>
               <td className="align-right muted">
                 {new Date(tx.created_at).toLocaleString('en-IN', {
@@ -57,7 +68,7 @@ export default function TransactionsTable({ transactions = [] }) {
                 })}
               </td>
             </tr>
-          ))}
+          );})}
         </tbody>
       </table>
     </div>
