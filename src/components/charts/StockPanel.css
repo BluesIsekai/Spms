@@ -5,7 +5,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  background: #121317;
+  background: #0f131e;
 }
 
 /* Symbol tabs */
@@ -97,9 +97,8 @@
 .panel-main {
   display: flex;
   flex: 1;
-  gap: 0;
-  padding: 20px;
   gap: 20px;
+  padding: 6px 20px 16px;
   min-height: 0;
   overflow: auto;
 }
@@ -184,15 +183,15 @@
 
 /* Info panel */
 .info-panel {
-  width: 280px;
+  width: 332px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: #1a1b20;
-  border-radius: 10px;
-  padding: 18px;
-  border: 1px solid rgba(60, 73, 78, 0.2);
+  background: linear-gradient(165deg, rgba(23, 27, 38, 0.96), rgba(15, 19, 30, 0.96));
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(67, 70, 86, 0.18);
   max-height: 100%;
   overflow-y: auto;
 }
@@ -214,14 +213,14 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #5a6872;
+  color: #8a95a0;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
 .stat-val {
   font-size: 14px;
-  font-weight: 600;
-  color: #e3e2e8;
+  font-weight: 700;
+  color: #dfe2f2;
   font-family: 'Inter', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
@@ -231,25 +230,137 @@
 
 .panel-divider {
   height: 1px;
-  background: rgba(60, 73, 78, 0.2);
+  background: rgba(67, 70, 86, 0.24);
   margin: 18px 0;
+}
+
+.trend-card {
+  background: linear-gradient(160deg, rgba(27, 31, 43, 0.96), rgba(19, 23, 34, 0.96));
+  border: 1px solid rgba(67, 70, 86, 0.18);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.trend-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trend-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #9ca8b3;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.trend-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(67, 70, 86, 0.3);
+  color: #bbc9cf;
+  background: rgba(67, 70, 86, 0.2);
+}
+
+.trend-badge.bullish {
+  color: #00c896;
+  border-color: rgba(0, 200, 150, 0.35);
+  background: rgba(0, 200, 150, 0.14);
+}
+
+.trend-badge.bearish {
+  color: #ff4757;
+  border-color: rgba(255, 71, 87, 0.35);
+  background: rgba(255, 71, 87, 0.14);
+}
+
+.trend-badge.sideways,
+.trend-badge.neutral {
+  color: #ffd166;
+  border-color: rgba(255, 209, 102, 0.3);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+.trend-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid rgba(67, 70, 86, 0.18);
+}
+
+.trend-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.trend-label {
+  font-size: 11px;
+  color: #96a0aa;
+}
+
+.trend-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dfe2f2;
+  text-align: right;
+}
+
+.trend-val.up {
+  color: #00c896;
+}
+
+.trend-val.down {
+  color: #ff4757;
+}
+
+.trend-val.rec {
+  color: #c8d4ff;
+}
+
+.trend-ma-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 11px;
+  color: #b7c1cc;
+  border-top: 1px solid rgba(67, 70, 86, 0.22);
+  padding-top: 10px;
 }
 
 /* Order form */
 .order-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .of-header {
-  font-size: 13px;
-  font-weight: 700;
-  color: #e3e2e8;
+  font-size: 10px;
+  font-weight: 800;
+  color: #9ca8b3;
   font-family: 'Inter', system-ui, sans-serif;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
+.of-balance-row,
 .of-price-row,
 .of-total-row {
   display: flex;
@@ -259,22 +370,30 @@
 
 .of-label {
   font-size: 12px;
-  color: #859398;
+  color: #8f9aa4;
   font-family: 'Inter', system-ui, sans-serif;
+}
+
+.of-balance {
+  font-size: 15px;
+  font-weight: 800;
+  color: #b6c4ff;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 .of-price {
   font-size: 16px;
   font-weight: 700;
-  color: #00d4ff;
+  color: #dce1ff;
   font-family: 'Inter', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
 .of-total {
   font-size: 15px;
-  font-weight: 700;
-  color: #e3e2e8;
+  font-weight: 800;
+  color: #dfe2f2;
   font-family: 'Inter', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
@@ -295,14 +414,14 @@
 }
 
 .order-input {
-  background: rgba(52, 52, 57, 0.6);
+  background: rgba(10, 14, 25, 0.9);
   border: none;
-  border-bottom: 2px solid rgba(60, 73, 78, 0.5);
+  border-bottom: 2px solid rgba(67, 70, 86, 0.55);
   border-radius: 6px 6px 0 0;
-  padding: 10px 12px;
-  color: #e3e2e8;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 14px 12px;
+  color: #b6c4ff;
+  font-size: 30px;
+  font-weight: 900;
   font-family: 'Inter', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   outline: none;
@@ -322,8 +441,8 @@
 .trade-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 6px;
 }
 
 .trade-btn {
@@ -331,15 +450,17 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px 8px;
+  min-height: 56px;
+  padding: 14px 8px;
   border-radius: 8px;
   border: none;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   font-family: 'Inter', system-ui, sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
 .trade-btn:disabled {
@@ -349,8 +470,8 @@
 }
 
 .buy-btn {
-  background: linear-gradient(135deg, #00c896, #00a87a);
-  color: #002a1e;
+  background: linear-gradient(135deg, #00a76f, #00895b);
+  color: #e8fff6;
   box-shadow: 0 4px 16px rgba(0, 200, 150, 0.2);
 }
 
@@ -361,7 +482,7 @@
 }
 
 .sell-btn {
-  background: linear-gradient(135deg, #ff4757, #e0303f);
+  background: linear-gradient(135deg, #da2237, #b7172a);
   color: #fff;
   box-shadow: 0 4px 16px rgba(255, 71, 87, 0.2);
 }

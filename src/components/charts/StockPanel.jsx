@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import StockChart from '../charts/StockChart';
-import { formatMarketCap, formatVolume, currencySymbol } from '../../services/yahooStockApi';
+import { formatMarketCap, formatVolume, currencySymbol, getHistoricalData } from '../../services/yahooStockApi';
 import { isIndex } from '../../utils/stockHelpers';
 import './StockPanel.css';
 
@@ -25,9 +25,11 @@ const POPULAR_SYMBOLS = [
  *  onBuy           {fn(symbol, qty, price)}
  *  onSell          {fn(symbol, qty, price)}
  */
-export default function StockPanel({ symbol, quote, onSymbolChange, onBuy, onSell }) {
+export default function StockPanel({ symbol, quote, availableBalance = 0, onSymbolChange, onBuy, onSell }) {
   const [orderQty, setOrderQty]       = useState('');
   const [tradeLoading, setTradeLoading] = useState(false);
+  const [trend, setTrend] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
 
   // Destructure Yahoo quote with safe fallbacks
   const price      = quote?.price     ?? 0;
@@ -50,6 +52,77 @@ export default function StockPanel({ symbol, quote, onSymbolChange, onBuy, onSel
   const orderTotal = orderQty && price
     ? (parseFloat(orderQty) * price).toLocaleString('en-IN', { minimumFractionDigits: 2 })
     : (0).toFixed(2);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const avg = (arr) => arr.reduce((sum, n) => sum + n, 0) / arr.length;
+
+    const loadTrend = async () => {
+      setTrendLoading(true);
+      try {
+        const { candles } = await getHistoricalData(symbol, '1M');
+        const closes = (candles || []).map((c) => Number(c.close)).filter((n) => Number.isFinite(n));
+
+        if (closes.length < 21) {
+          if (!cancelled) setTrend(null);
+          return;
+        }
+
+        const ma5 = avg(closes.slice(-5));
+        const ma20 = avg(closes.slice(-20));
+        const prevMa5 = avg(closes.slice(-6, -1));
+        const prevMa20 = avg(closes.slice(-21, -1));
+        const lastClose = closes[closes.length - 1];
+        const close5Ago = closes[closes.length - 6] ?? lastClose;
+        const momentumPct = close5Ago ? ((lastClose - close5Ago) / close5Ago) * 100 : 0;
+        const maGapPct = ma20 ? ((ma5 - ma20) / ma20) * 100 : 0;
+
+        const crossoverUp = prevMa5 <= prevMa20 && ma5 > ma20;
+        const crossoverDown = prevMa5 >= prevMa20 && ma5 < ma20;
+
+        let direction = 'Sideways';
+        if (maGapPct > 0.25) direction = 'Bullish';
+        if (maGapPct < -0.25) direction = 'Bearish';
+
+        let signal = 'Neutral';
+        if (crossoverUp) signal = 'Bullish Crossover';
+        else if (crossoverDown) signal = 'Bearish Crossover';
+        else if (direction === 'Bullish') signal = 'Above MA20';
+        else if (direction === 'Bearish') signal = 'Below MA20';
+
+        let recommendation = 'Hold';
+        if (direction === 'Bullish' && momentumPct >= 1.2) recommendation = 'Strong Buy';
+        else if (direction === 'Bullish' && momentumPct > 0) recommendation = 'Buy';
+        else if (direction === 'Bearish' && momentumPct <= -1.2) recommendation = 'Strong Sell';
+        else if (direction === 'Bearish' && momentumPct < 0) recommendation = 'Sell';
+
+        const confidenceRaw = Math.abs(maGapPct) * 6 + Math.abs(momentumPct) * 8;
+        const confidence = Math.max(35, Math.min(98, confidenceRaw));
+
+        if (!cancelled) {
+          setTrend({
+            direction,
+            signal,
+            recommendation,
+            confidence,
+            momentumPct,
+            ma5,
+            ma20,
+          });
+        }
+      } catch (_) {
+        if (!cancelled) setTrend(null);
+      } finally {
+        if (!cancelled) setTrendLoading(false);
+      }
+    };
+
+    loadTrend();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
 
   const handleTrade = async (type) => {
     if (!orderQty || parseFloat(orderQty) <= 0) return;
@@ -142,12 +215,53 @@ export default function StockPanel({ symbol, quote, onSymbolChange, onBuy, onSel
             )}
           </div>
 
+          <div className="panel-divider" />
+          <div className="trend-card">
+            <div className="trend-card-head">
+              <span className="trend-title">Trend Analysis</span>
+              <span className={`trend-badge ${trend?.direction?.toLowerCase() || 'neutral'}`}>
+                {trendLoading ? 'Analyzing' : trend?.direction || 'N/A'}
+              </span>
+            </div>
+
+            <div className="trend-metrics">
+              <div className="trend-row">
+                <span className="trend-label">Confidence Factor</span>
+                <span className="trend-val">{trend ? `${trend.confidence.toFixed(0)}%` : '—'}</span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Momentum Engine</span>
+                <span className={`trend-val ${trend?.momentumPct >= 0 ? 'up' : 'down'}`}>
+                  {trend ? `${trend.momentumPct >= 0 ? '+' : ''}${trend.momentumPct.toFixed(2)}%` : '—'}
+                </span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Execution Signal</span>
+                <span className="trend-val">{trend?.signal || '—'}</span>
+              </div>
+              <div className="trend-row">
+                <span className="trend-label">Recommendation</span>
+                <span className="trend-val rec">{trend?.recommendation || '—'}</span>
+              </div>
+            </div>
+
+            <div className="trend-ma-row">
+              <span>MA5: {trend ? `${sym}${trend.ma5.toFixed(2)}` : '—'}</span>
+              <span>MA20: {trend ? `${sym}${trend.ma20.toFixed(2)}` : '—'}</span>
+            </div>
+          </div>
+
           {/* Show Order Form strictly for equities */}
           {!isIdx && (
             <>
               <div className="panel-divider" />
               <div className="order-form" id="order-form">
                 <div className="of-header">Place Order</div>
+
+                <div className="of-balance-row">
+                  <span className="of-label">Available Balance</span>
+                  <span className="of-balance">₹{Number(availableBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                </div>
 
                 <div className="of-price-row">
                   <span className="of-label">Market Price</span>

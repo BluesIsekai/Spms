@@ -3,9 +3,9 @@
 .portfolio-table-wrapper {
   width: 100%;
   overflow-x: auto;
-  border-radius: 8px;
-  background: #1a1b20;
-  border: 1px solid rgba(60, 73, 78, 0.18);
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(23, 27, 38, 0.96), rgba(15, 19, 30, 0.96));
+  border: 1px solid rgba(67, 70, 86, 0.18);
 }
 
 .data-table {
@@ -15,28 +15,28 @@
 }
 
 .data-table thead tr {
-  background: rgba(13, 14, 18, 0.6);
+  background: rgba(10, 14, 25, 0.7);
 }
 
 .data-table th {
-  padding: 11px 16px;
+  padding: 13px 16px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #5a6872;
+  letter-spacing: 0.12em;
+  color: #8e99a3;
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(60, 73, 78, 0.2);
+  border-bottom: 1px solid rgba(67, 70, 86, 0.22);
 }
 
 .data-table td {
-  padding: 12px 16px;
+  padding: 14px 16px;
   font-size: 13px;
-  color: #e3e2e8;
+  color: #dfe2f2;
   vertical-align: middle;
   white-space: nowrap;
-  border-bottom: 1px solid rgba(60, 73, 78, 0.08);
+  border-bottom: 1px solid rgba(67, 70, 86, 0.14);
 }
 
 .data-table tbody tr:last-child td {
@@ -48,7 +48,7 @@
 }
 
 .table-row:hover {
-  background: rgba(0, 212, 255, 0.04);
+  background: rgba(41, 98, 255, 0.08);
 }
 
 .clickable {
@@ -64,18 +64,18 @@
 .muted { color: #859398; }
 
 .up   { color: #00c896; }
-.down { color: #ff4757; }
+.down { color: #f36a78; }
 
 /* Symbol badge */
 .symbol-badge {
   display: inline-block;
   padding: 3px 8px;
-  background: rgba(0, 212, 255, 0.08);
-  border: 1px solid rgba(0, 212, 255, 0.18);
+  background: rgba(41, 98, 255, 0.12);
+  border: 1px solid rgba(182, 196, 255, 0.2);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
-  color: #a8e8ff;
+  color: #c8d4ff;
   letter-spacing: 0.3px;
 }
 

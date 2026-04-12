@@ -52,11 +52,11 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
             const avgBuyPrice = Number(h.average_buy_price || 0);
             const quote = liveQuotes[h.stock_symbol] || {};
             const currency = quote.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
-            const current = Number(quote.price || livePrices[h.stock_symbol] || avgBuyPrice);
-            const plNative = (current - avgBuyPrice) * quantity;
-            const plPct = avgBuyPrice > 0 ? ((current - avgBuyPrice) / avgBuyPrice) * 100 : 0;
-            const valueInInr = convertToINR(current * quantity, currency, fxRates);
-            const plInInr = convertToINR(plNative, currency, fxRates);
+            const currentPrice = Number(quote.price || livePrices[h.stock_symbol] || avgBuyPrice);
+            const rowPL = (currentPrice - avgBuyPrice) * quantity;
+            const rowPLPercent = avgBuyPrice > 0 ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100 : 0;
+            const valueInInr = convertToINR(currentPrice * quantity, currency, fxRates);
+            const plInInr = convertToINR(rowPL, currency, fxRates);
             const isUp = plInInr >= 0;
 
             return (
@@ -71,12 +71,12 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
                 </td>
                 <td className="align-right tabular">{quantity.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                 <td className="align-right tabular">{formatAmount(avgBuyPrice, currency)}</td>
-                <td className="align-right tabular">{formatAmount(current, currency)}</td>
+                <td className="align-right tabular">{formatAmount(currentPrice, currency)}</td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
                   {isUp ? '+' : '-'}{formatINR(Math.abs(plInInr))}
                 </td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
-                  {isUp ? '+' : ''}{plPct.toFixed(2)}%
+                  {isUp ? '+' : ''}{rowPLPercent.toFixed(2)}%
                 </td>
                 <td className="align-right tabular bold">{formatINR(valueInInr)}</td>
               </tr>

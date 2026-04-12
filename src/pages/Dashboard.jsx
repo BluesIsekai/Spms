@@ -5,7 +5,7 @@ import PortfolioTable from '../components/PortfolioTable';
 import TransactionsTable from '../components/TransactionsTable';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { getFxRatesToINR, getQuote } from '../services/yahooStockApi';
+import { getFxRatesToINR, getHistoricalData, getQuote } from '../services/yahooStockApi';
 import {
   fetchHoldings,
   fetchTransactions,
@@ -46,6 +46,7 @@ export default function Dashboard({
   const [activeTab, setActiveTab]       = useState('holdings');
   const [tradeError, setTradeError]     = useState('');
   const [fxRates, setFxRates]           = useState({});
+  const [prevCloseBySymbol, setPrevCloseBySymbol] = useState({});
 
   // Dashboard-specific polling: For any holdings that are not already covered in appPrices
   const heldSymbols = useMemo(() => holdings.map((h) => h.stock_symbol), [holdings]);
@@ -69,6 +70,53 @@ export default function Dashboard({
     getFxRatesToINR(currencies)
       .then((rates) => setFxRates(rates || {}))
       .catch(() => setFxRates({}));
+  }, [holdings, mergedPrices]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const targets = holdings
+      .map((h) => h.stock_symbol)
+      .filter((sym) => {
+        const quote = mergedPrices[sym];
+        return !(quote && Number.isFinite(Number(quote.prevClose)) && Number(quote.prevClose) > 0);
+      });
+
+    if (!targets.length) {
+      setPrevCloseBySymbol({});
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const loadFallbackPrevClose = async () => {
+      const entries = await Promise.all(
+        [...new Set(targets)].map(async (sym) => {
+          try {
+            const { candles = [] } = await getHistoricalData(sym, '5D');
+            const closes = candles
+              .map((c) => Number(c?.close))
+              .filter((n) => Number.isFinite(n) && n > 0);
+            if (!closes.length) return [sym, undefined];
+            const prevClose = closes.length > 1 ? closes[closes.length - 2] : closes[0];
+            return [sym, prevClose];
+          } catch {
+            return [sym, undefined];
+          }
+        })
+      );
+
+      if (!cancelled) {
+        const next = Object.fromEntries(entries.filter(([, v]) => Number.isFinite(v) && v > 0));
+        setPrevCloseBySymbol(next);
+      }
+    };
+
+    loadFallbackPrevClose();
+
+    return () => {
+      cancelled = true;
+    };
   }, [holdings, mergedPrices]);
 
   // ── Portfolio data from Supabase (or demo fallback) ──────────────────────
@@ -127,12 +175,27 @@ export default function Dashboard({
     const previousCloseValue = holdings.reduce((sum, h) => {
       const quote = mergedPrices[h.stock_symbol];
       const current = quote?.price ?? Number(h.average_buy_price);
-      const previous = quote?.prevClose ?? (quote ? current - (quote.change ?? 0) : Number(h.average_buy_price));
+      const previous =
+        (Number.isFinite(Number(quote?.prevClose)) && Number(quote?.prevClose) > 0
+          ? Number(quote.prevClose)
+          : undefined) ??
+        prevCloseBySymbol[h.stock_symbol] ??
+        (quote ? current - (quote.change ?? 0) : Number(h.average_buy_price));
       const currency = quote?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
       return sum + convertToINR(previous * Number(h.quantity), currency, fxRates);
     }, 0);
 
-    const totalPnL = portfolioValue - invested;
+    const totalPnL = holdings.reduce((sum, h) => {
+      const quote = mergedPrices[h.stock_symbol];
+      const currentPrice = Number(quote?.price || h.average_buy_price || 0);
+      const avgBuyPrice = Number(h.average_buy_price || 0);
+      const quantity = Number(h.quantity || 0);
+      const currency = quote?.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+
+      const rowPnL = (currentPrice - avgBuyPrice) * quantity;
+      return sum + convertToINR(rowPnL, currency, fxRates);
+    }, 0);
+
     const todayPnL = portfolioValue - previousCloseValue;
     const todayPnLPct = previousCloseValue > 0 ? (todayPnL / previousCloseValue) * 100 : 0;
 
@@ -142,7 +205,7 @@ export default function Dashboard({
       totalPnL,
       todayPnLPct,
     };
-  }, [holdings, mergedPrices, fxRates]);
+  }, [holdings, mergedPrices, fxRates, prevCloseBySymbol]);
 
   const walletBalance = Number(wallet?.virtual_balance ?? DEFAULT_BALANCE);
 
@@ -276,6 +339,7 @@ export default function Dashboard({
         <StockPanel
           symbol={activeSymbol}
           quote={mergedPrices[activeSymbol]}
+          availableBalance={walletBalance}
           onSymbolChange={setActiveSymbol}
           onBuy={handleBuy}
           onSell={handleSell}
