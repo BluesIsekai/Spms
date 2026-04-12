@@ -1,5 +1,10 @@
 import './PortfolioTable.css';
 
+function formatINR(value) {
+  const num = Number(value || 0);
+  return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /**
  * Portfolio holdings table.
  * Props:
@@ -7,14 +12,21 @@ import './PortfolioTable.css';
  *  - livePrices {{ [symbol]: number }}
  *  - onSelectSymbol {function}
  */
-export default function PortfolioTable({ holdings = [], livePrices = {}, onSelectSymbol }) {
+export default function PortfolioTable({ holdings = [], livePrices = {}, onSelectSymbol, onEmptyCta }) {
   if (holdings.length === 0) {
     return (
       <div className="portfolio-empty" id="portfolio-table-empty">
-        <svg width="40" height="40" fill="none" stroke="#3c494e" strokeWidth="1.5" viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-        </svg>
-        <span>No holdings yet. Buy your first stock!</span>
+        <div className="portfolio-empty-icon" aria-hidden="true">
+          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.7" viewBox="0 0 24 24">
+            <path d="M4 16l4-5 3 2 5-7 4 3"/>
+            <circle cx="20" cy="9" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </div>
+        <h3 className="portfolio-empty-title">No holdings yet.</h3>
+        <p className="portfolio-empty-copy">Start paper trading by buying your first stock.</p>
+        <button className="portfolio-empty-cta" type="button" onClick={() => onEmptyCta?.()}>
+          Buy First Stock
+        </button>
       </div>
     );
   }
@@ -35,10 +47,12 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, onSelec
         </thead>
         <tbody>
           {holdings.map((h) => {
-            const current = livePrices[h.stock_symbol] || h.average_buy_price;
-            const pl = (current - h.average_buy_price) * h.quantity;
-            const plPct = ((current - h.average_buy_price) / h.average_buy_price) * 100;
-            const value = current * h.quantity;
+            const quantity = Number(h.quantity || 0);
+            const avgBuyPrice = Number(h.average_buy_price || 0);
+            const current = Number(livePrices[h.stock_symbol] || avgBuyPrice);
+            const pl = (current - avgBuyPrice) * quantity;
+            const plPct = avgBuyPrice > 0 ? ((current - avgBuyPrice) / avgBuyPrice) * 100 : 0;
+            const value = current * quantity;
             const isUp = pl >= 0;
 
             return (
@@ -51,16 +65,16 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, onSelec
                 <td>
                   <span className="symbol-badge">{h.stock_symbol}</span>
                 </td>
-                <td className="align-right tabular">{h.quantity.toLocaleString()}</td>
-                <td className="align-right tabular">${h.average_buy_price.toFixed(2)}</td>
-                <td className="align-right tabular">${current.toFixed(2)}</td>
+                <td className="align-right tabular">{quantity.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+                <td className="align-right tabular">{formatINR(avgBuyPrice)}</td>
+                <td className="align-right tabular">{formatINR(current)}</td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
-                  {isUp ? '+' : ''}${pl.toFixed(2)}
+                  {isUp ? '+' : '-'}{formatINR(Math.abs(pl))}
                 </td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
                   {isUp ? '+' : ''}{plPct.toFixed(2)}%
                 </td>
-                <td className="align-right tabular bold">${value.toFixed(2)}</td>
+                <td className="align-right tabular bold">{formatINR(value)}</td>
               </tr>
             );
           })}

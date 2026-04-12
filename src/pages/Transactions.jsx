@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchTransactions, subscribeTransactions } from '../services/portfolioService';
-import { getDefaultUserId } from '../services/userService';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { formatCurrency, getStatusClass } from '../constants/designTokens';
 import PageHeader from '../components/ui/PageHeader';
 import DataTable from '../components/ui/DataTable';
@@ -8,7 +8,8 @@ import Card from '../components/ui/Card';
 import './Pages.css';
 
 export default function Transactions() {
-  const userId = getDefaultUserId();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -18,6 +19,11 @@ export default function Transactions() {
   const [toDate, setToDate] = useState('');
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return () => {};
+    }
+
     const load = async () => {
       const data = await fetchTransactions(userId, 1000);
       setTransactions(data || []);

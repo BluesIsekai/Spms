@@ -18,6 +18,59 @@
   scrollbar-color: rgba(60, 73, 78, 0.4) transparent;
 }
 
+.summary-cards-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  padding: 14px 20px 12px;
+}
+
+.summary-card {
+  background: linear-gradient(155deg, rgba(23, 24, 30, 0.98), rgba(14, 16, 21, 0.98));
+  border: 1px solid rgba(60, 73, 78, 0.3);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.summary-card-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #5a6872;
+  font-weight: 700;
+}
+
+.summary-card-value {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #d9e6eb;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-card.up .summary-card-value {
+  color: #00c896;
+}
+
+.summary-card.down .summary-card-value {
+  color: #ff6f7f;
+}
+
+.trade-error-banner {
+  margin: 0 20px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 71, 87, 0.35);
+  background: rgba(255, 71, 87, 0.12);
+  color: #ff98a4;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Bottom section (tables) */
 .bottom-section {
   display: flex;
@@ -111,6 +164,18 @@
 
 .bottom-content {
   animation: fadeIn 0.2s ease;
+}
+
+@media (max-width: 1180px) {
+  .summary-cards-row {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .summary-cards-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes fadeIn {

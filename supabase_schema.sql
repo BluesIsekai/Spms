@@ -248,24 +248,72 @@ CREATE POLICY "user_settings_own_delete" ON public.user_settings
   );
 
 -- ─── Trigger: sync auth.users → public.users ─────────────────
-CREATE OR REPLACE FUNCTION public.handle_new_user()
+-- Create function to handle new user signup
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+CREATE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, email, name)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1))
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email)
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE
+  SET 
+    name = COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+    email = NEW.email;
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Create trigger on auth.users insert
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Create default user_settings when user signs up
+DROP FUNCTION IF EXISTS public.create_user_settings() CASCADE;
+CREATE FUNCTION public.create_user_settings()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_settings (user_id, theme, currency, refresh_interval, default_balance, notifications)
+  VALUES (NEW.id, 'dark', 'INR', 10000, 100000.00, true)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to initialize settings
+DROP TRIGGER IF EXISTS on_user_created_settings ON public.users;
+CREATE TRIGGER on_user_created_settings
+  AFTER INSERT ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.create_user_settings();
+
+-- Create default paper wallet when user signs up
+DROP FUNCTION IF EXISTS public.create_paper_wallet() CASCADE;
+CREATE FUNCTION public.create_paper_wallet()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.paper_wallet (user_id, virtual_balance, initial_balance)
+  VALUES (NEW.id, 100000.00, 100000.00)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger to initialize wallet
+DROP TRIGGER IF EXISTS on_user_created_wallet ON public.users;
+CREATE TRIGGER on_user_created_wallet
+  AFTER INSERT ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.create_paper_wallet();
 
 -- ─── Enable Realtime for all tables ──────────────────────────
 DO $$

@@ -4,6 +4,8 @@ import StockPanel from '../components/charts/StockPanel';
 import PortfolioTable from '../components/PortfolioTable';
 import TransactionsTable from '../components/TransactionsTable';
 import { useStockPolling } from '../hooks/useStockPolling';
+import { useAuth } from '../hooks/useAuth.jsx';
+import { getQuote } from '../services/yahooStockApi';
 import {
   fetchHoldings,
   fetchTransactions,
@@ -11,10 +13,11 @@ import {
   subscribeHoldings,
   subscribeTransactions,
 } from '../services/portfolioService';
+import { fetchWallet, subscribeWallet } from '../services/walletService';
+import { supabase } from '../services/supabaseClient';
 import './Dashboard.css';
 
-// Demo user (replace with supabase.auth.getUser() when auth is set up)
-const DEMO_USER_ID = 'demo-user-1';
+const DEFAULT_BALANCE = 100000;
 
 // Default Indian NSE watchlist — populated by Yahoo Finance polling
 const DEFAULT_WATCHLIST = [
@@ -25,9 +28,7 @@ const DEFAULT_WATCHLIST = [
   { symbol: 'SBIN.NS',     name: 'State Bank of India' },
 ];
 
-const SUPABASE_CONFIGURED =
-  import.meta.env.VITE_SUPABASE_URL &&
-  /^https?:\/\/.+/.test(import.meta.env.VITE_SUPABASE_URL);
+const SUPABASE_CONFIGURED = !!supabase;
 
 export default function Dashboard({
   activeSymbol,
@@ -37,9 +38,12 @@ export default function Dashboard({
   connected,
   onRefresh
 }) {
+  const { user } = useAuth();
   const [holdings, setHoldings]         = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [wallet, setWallet]             = useState(null);
   const [activeTab, setActiveTab]       = useState('holdings');
+  const [tradeError, setTradeError]     = useState('');
 
   // Dashboard-specific polling: For any holdings that are not already covered in appPrices
   const heldSymbols = useMemo(() => holdings.map((h) => h.stock_symbol), [holdings]);
@@ -57,6 +61,8 @@ export default function Dashboard({
 
   // ── Portfolio data from Supabase (or demo fallback) ──────────────────────
   useEffect(() => {
+    if (!user?.id) return;
+
     if (!SUPABASE_CONFIGURED) {
       // Demo data — Indian stocks
       setHoldings([
@@ -69,29 +75,58 @@ export default function Dashboard({
         { id: 2, stock_symbol: 'TCS.NS',      transaction_type: 'BUY', quantity: 5,  price: 3600, total_amount: 18000, created_at: new Date().toISOString() },
         { id: 3, stock_symbol: 'INFY.NS',     transaction_type: 'BUY', quantity: 15, price: 1500, total_amount: 22500, created_at: new Date().toISOString() },
       ]);
+      setWallet({ virtual_balance: DEFAULT_BALANCE, initial_balance: DEFAULT_BALANCE });
       return;
     }
 
-    Promise.all([fetchHoldings(DEMO_USER_ID), fetchTransactions(DEMO_USER_ID)])
-      .then(([h, t]) => { setHoldings(h); setTransactions(t); })
+    Promise.all([fetchHoldings(user.id), fetchTransactions(user.id), fetchWallet(user.id)])
+      .then(([h, t, w]) => {
+        setHoldings(h || []);
+        setTransactions(t || []);
+        setWallet(w || null);
+      })
       .catch(() => {});
 
-    const unsub1 = subscribeHoldings(DEMO_USER_ID, () =>
-      fetchHoldings(DEMO_USER_ID).then(setHoldings).catch(() => {})
+    const unsub1 = subscribeHoldings(user.id, () =>
+      fetchHoldings(user.id).then(setHoldings).catch(() => {})
     );
-    const unsub2 = subscribeTransactions(DEMO_USER_ID, () =>
-      fetchTransactions(DEMO_USER_ID).then(setTransactions).catch(() => {})
+    const unsub2 = subscribeTransactions(user.id, () =>
+      fetchTransactions(user.id).then(setTransactions).catch(() => {})
     );
-    return () => { unsub1(); unsub2(); };
-  }, []);
+    const unsub3 = subscribeWallet(user.id, () =>
+      fetchWallet(user.id).then(setWallet).catch(() => {})
+    );
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [user?.id]);
 
   // ── Derived values ────────────────────────────────────────────────────────
 
-  // Total live portfolio value
-  const totalValue = holdings.reduce((sum, h) => {
-    const p = mergedPrices[h.stock_symbol]?.price ?? h.average_buy_price;
-    return sum + p * h.quantity;
-  }, 0);
+  const portfolioMetrics = useMemo(() => {
+    const invested = holdings.reduce((sum, h) => sum + Number(h.average_buy_price) * Number(h.quantity), 0);
+    const portfolioValue = holdings.reduce((sum, h) => {
+      const p = mergedPrices[h.stock_symbol]?.price ?? Number(h.average_buy_price);
+      return sum + p * Number(h.quantity);
+    }, 0);
+    const previousCloseValue = holdings.reduce((sum, h) => {
+      const quote = mergedPrices[h.stock_symbol];
+      const current = quote?.price ?? Number(h.average_buy_price);
+      const previous = quote?.prevClose ?? (quote ? current - (quote.change ?? 0) : Number(h.average_buy_price));
+      return sum + previous * Number(h.quantity);
+    }, 0);
+
+    const totalPnL = portfolioValue - invested;
+    const todayPnL = portfolioValue - previousCloseValue;
+    const todayPnLPct = previousCloseValue > 0 ? (todayPnL / previousCloseValue) * 100 : 0;
+
+    return {
+      invested,
+      portfolioValue,
+      totalPnL,
+      todayPnLPct,
+    };
+  }, [holdings, mergedPrices]);
+
+  const walletBalance = Number(wallet?.virtual_balance ?? DEFAULT_BALANCE);
 
   // Flat price map { symbol: number } for legacy prop interfaces (PortfolioTable)
   const livePriceMap = Object.fromEntries(
@@ -99,37 +134,78 @@ export default function Dashboard({
   );
 
   // ── Trade handlers ────────────────────────────────────────────────────────
-  const handleBuy = async (symbol, qty, price) => {
-    const newTx = {
-      id: Date.now(), stock_symbol: symbol, transaction_type: 'BUY',
-      quantity: qty, price, total_amount: qty * price, created_at: new Date().toISOString(),
-    };
-    setTransactions((prev) => [newTx, ...prev]);
-    setHoldings((prev) => {
-      const ex = prev.find((h) => h.stock_symbol === symbol);
-      if (ex) {
-        const newQty = ex.quantity + qty;
-        const newAvg = (ex.quantity * ex.average_buy_price + qty * price) / newQty;
-        return prev.map((h) => h.stock_symbol === symbol ? { ...h, quantity: newQty, average_buy_price: newAvg } : h);
-      }
-      return [...prev, { stock_symbol: symbol, quantity: qty, average_buy_price: price }];
-    });
-    try { await recordTransaction({ userId: DEMO_USER_ID, symbol, type: 'BUY', quantity: qty, price }); } catch (_) {}
+  const refreshPortfolioState = async () => {
+    if (!user?.id || !SUPABASE_CONFIGURED) return;
+    const [h, t, w] = await Promise.all([
+      fetchHoldings(user.id),
+      fetchTransactions(user.id),
+      fetchWallet(user.id),
+    ]);
+    setHoldings(h || []);
+    setTransactions(t || []);
+    setWallet(w || null);
   };
 
-  const handleSell = async (symbol, qty, price) => {
-    const newTx = {
-      id: Date.now(), stock_symbol: symbol, transaction_type: 'SELL',
-      quantity: qty, price, total_amount: qty * price, created_at: new Date().toISOString(),
-    };
-    setTransactions((prev) => [newTx, ...prev]);
-    setHoldings((prev) =>
-      prev
-        .map((h) => h.stock_symbol === symbol ? { ...h, quantity: h.quantity - qty } : h)
-        .filter((h) => h.quantity > 0)
-    );
-    try { await recordTransaction({ userId: DEMO_USER_ID, symbol, type: 'SELL', quantity: qty, price }); } catch (_) {}
+  const handleBuy = async (symbol, qty) => {
+    if (!user?.id) {
+      setTradeError('Please login to place a trade.');
+      return;
+    }
+
+    try {
+      setTradeError('');
+      const latestQuote = await getQuote(symbol);
+      const marketPrice = Number(latestQuote?.price || 0);
+      if (!marketPrice) throw new Error('Unable to fetch live market price.');
+
+      await recordTransaction({ userId: user.id, symbol, type: 'BUY', quantity: qty, price: marketPrice });
+      await refreshPortfolioState();
+    } catch (err) {
+      setTradeError(err.message || 'Buy order failed.');
+    }
   };
+
+  const handleSell = async (symbol, qty) => {
+    if (!user?.id) {
+      setTradeError('Please login to place a trade.');
+      return;
+    }
+
+    try {
+      setTradeError('');
+      const latestQuote = await getQuote(symbol);
+      const marketPrice = Number(latestQuote?.price || 0);
+      if (!marketPrice) throw new Error('Unable to fetch live market price.');
+
+      await recordTransaction({ userId: user.id, symbol, type: 'SELL', quantity: qty, price: marketPrice });
+      await refreshPortfolioState();
+    } catch (err) {
+      setTradeError(err.message || 'Sell order failed.');
+    }
+  };
+
+  const summaryCards = [
+    {
+      label: 'Virtual Balance',
+      value: `₹${walletBalance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      status: 'neutral',
+    },
+    {
+      label: 'Portfolio Value',
+      value: `₹${portfolioMetrics.portfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      status: 'neutral',
+    },
+    {
+      label: 'Total P/L',
+      value: `${portfolioMetrics.totalPnL >= 0 ? '+' : '-'}₹${Math.abs(portfolioMetrics.totalPnL).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+      status: portfolioMetrics.totalPnL >= 0 ? 'up' : 'down',
+    },
+    {
+      label: "Today's P/L %",
+      value: `${portfolioMetrics.todayPnLPct >= 0 ? '+' : ''}${portfolioMetrics.todayPnLPct.toFixed(2)}%`,
+      status: portfolioMetrics.todayPnLPct >= 0 ? 'up' : 'down',
+    },
+  ];
 
   return (
     <div className="dashboard" id="dashboard-page">
@@ -143,6 +219,17 @@ export default function Dashboard({
       />
 
       <div className="dashboard-content">
+        <section className="summary-cards-row" aria-label="Portfolio summary">
+          {summaryCards.map((card) => (
+            <article key={card.label} className={`summary-card ${card.status}`}>
+              <span className="summary-card-label">{card.label}</span>
+              <strong className="summary-card-value">{card.value}</strong>
+            </article>
+          ))}
+        </section>
+
+        {tradeError && <div className="trade-error-banner">{tradeError}</div>}
+
         {/* Main stock panel */}
         <StockPanel
           symbol={activeSymbol}
@@ -182,7 +269,7 @@ export default function Dashboard({
             <div className="portfolio-value-strip">
               <span className="pvs-label">Portfolio</span>
               <span className="pvs-value">
-                ₹{totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                ₹{portfolioMetrics.portfolioValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -193,6 +280,11 @@ export default function Dashboard({
                 holdings={holdings}
                 livePrices={livePriceMap}
                 onSelectSymbol={setActiveSymbol}
+                onEmptyCta={() => {
+                  setActiveTab('holdings');
+                  setActiveSymbol(DEFAULT_WATCHLIST[0].symbol);
+                  document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
               />
             ) : (
               <TransactionsTable transactions={transactions} />

@@ -8,7 +8,7 @@ import {
 } from '../services/portfolioService';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { searchStocks } from '../services/searchService';
-import { getDefaultUserId } from '../services/userService';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { formatCurrency, formatPercent, getStatusClass } from '../constants/designTokens';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
@@ -21,7 +21,8 @@ function resolveTradingSymbol(stock) {
 }
 
 export default function Watchlist({ onOpenChart }) {
-  const userId = getDefaultUserId();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -30,6 +31,11 @@ export default function Watchlist({ onOpenChart }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return () => {};
+    }
+
     const load = async () => {
       const data = await fetchWatchlist(userId);
       setWatchlistItems(data || []);

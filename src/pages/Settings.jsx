@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { fetchSettings, updateSettings } from '../services/settingsService';
 import { resetPortfolio } from '../services/portfolioService';
-import { getDefaultUserId } from '../services/userService';
+import { useAuth } from '../hooks/useAuth.jsx';
 import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import './Pages.css';
 
 export default function Settings() {
-  const userId = getDefaultUserId();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [settings, setSettings] = useState({
     theme: 'dark',
     currency: 'INR',
@@ -21,6 +22,11 @@ export default function Settings() {
   const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     fetchSettings(userId)
       .then((data) => {
         if (data) setSettings(data);

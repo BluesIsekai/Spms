@@ -6,7 +6,7 @@ import {
 } from '../services/portfolioService';
 import { fetchWallet, subscribeWallet } from '../services/walletService';
 import { useStockPolling } from '../hooks/useStockPolling';
-import { getDefaultUserId } from '../services/userService';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { formatCurrency, formatPercent, getStatusClass } from '../constants/designTokens';
 import PageHeader from '../components/ui/PageHeader';
 import SummaryCard from '../components/ui/SummaryCard';
@@ -16,12 +16,18 @@ import './Pages.css';
 const DEFAULT_BALANCE = 100000;
 
 export default function Portfolio() {
-  const userId = getDefaultUserId();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [holdings, setHoldings] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return () => {};
+    }
+
     const load = async () => {
       const [hData, wData] = await Promise.all([
         fetchHoldings(userId),

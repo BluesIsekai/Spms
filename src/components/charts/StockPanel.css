@@ -101,7 +101,7 @@
   padding: 20px;
   gap: 20px;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Chart section */
@@ -193,6 +193,8 @@
   border-radius: 10px;
   padding: 18px;
   border: 1px solid rgba(60, 73, 78, 0.2);
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 /* Stats grid */
@@ -381,4 +383,26 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1180px) {
+  .panel-main {
+    flex-direction: column;
+  }
+
+  .info-panel {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .trade-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-btn {
+    width: 100%;
+  }
 }

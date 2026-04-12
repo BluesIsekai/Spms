@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.jsx';
 import { currencySymbol } from '../services/yahooStockApi';
 import { useDebouncedSearch } from '../hooks/useDebouncedSearch';
 import './Navbar.css';
@@ -15,9 +17,13 @@ import './Navbar.css';
  *  onSymbolChange {fn}        callback to trigger symbol swap
  */
 export default function Navbar({ activeSymbol, quote, lastUpdated, connected, onRefresh, onSymbolChange }) {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchRef = useRef(null);
+  const profileMenuRef = useRef(null);
   
   // Custom Hook replaces Yahoo Finance endpoint
   const { query, setQuery, results, isSearching, clearSearch } = useDebouncedSearch(300);
@@ -27,6 +33,9 @@ export default function Navbar({ activeSymbol, quote, lastUpdated, connected, on
     const handler = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setShowDropdown(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setShowProfileMenu(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -82,6 +91,17 @@ export default function Navbar({ activeSymbol, quote, lastUpdated, connected, on
   const updatedStr = lastUpdated
     ? lastUpdated.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })
     : null;
+
+  const avatarInitial = user?.email?.charAt(0)?.toUpperCase() || 'U';
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
 
   return (
     <header className="navbar" id="app-navbar">
@@ -179,14 +199,55 @@ export default function Navbar({ activeSymbol, quote, lastUpdated, connected, on
         </button>
 
         {/* User avatar */}
-        <button id="user-avatar-btn" className="avatar-btn" aria-label="User menu">
-          <div className="avatar">
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-          </div>
-        </button>
+        <div className="avatar-menu" ref={profileMenuRef}>
+          <button
+            id="user-avatar-btn"
+            className="avatar-btn"
+            aria-label="User menu"
+            onClick={() => setShowProfileMenu((v) => !v)}
+          >
+            <div className="avatar">{avatarInitial}</div>
+          </button>
+
+          {showProfileMenu && (
+            <div className="profile-dropdown" role="menu">
+              <div className="profile-dropdown-header">
+                <span className="profile-dropdown-name">{user?.user_metadata?.name || 'Trader'}</span>
+                <span className="profile-dropdown-email">{user?.email}</span>
+              </div>
+              <button
+                className="profile-dropdown-item"
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  navigate('/portfolio');
+                }}
+              >
+                Profile
+              </button>
+              <button
+                className="profile-dropdown-item"
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  navigate('/settings');
+                }}
+              >
+                Settings
+              </button>
+              <button
+                className="profile-dropdown-item danger"
+                type="button"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  handleLogout();
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

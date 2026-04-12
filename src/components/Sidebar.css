@@ -293,7 +293,8 @@
   .sidebar .logo-text,
   .sidebar .nav-label,
   .sidebar .sidebar-watchlist,
-  .sidebar .sidebar-footer {
+  .sidebar .sidebar-footer,
+  .sidebar .sidebar-profile {
     display: none;
   }
 
@@ -310,4 +311,140 @@
     justify-content: center;
     padding: 16px 12px;
   }
+}
+
+/* Profile Section */
+.sidebar-profile {
+  padding: 12px 10px;
+  border-top: 1px solid rgba(60, 73, 78, 0.2);
+  border-bottom: 1px solid rgba(60, 73, 78, 0.2);
+  margin-top: 8px;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #00d4ff 0%, #2962ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-email {
+  font-size: 12px;
+  color: #859398;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ff6b7a;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+
+.logout-btn:hover {
+  color: #ff8a95;
+}
+
+/* Logout Confirmation Modal */
+.logout-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.logout-confirm-dialog {
+  background: #1a1b20;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 320px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.logout-confirm-dialog h3 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.logout-confirm-dialog p {
+  margin: 0 0 20px;
+  color: #859398;
+  font-size: 13px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-cancel,
+.confirm-logout {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-cancel {
+  background: rgba(60, 73, 78, 0.3);
+  color: #859398;
+  border: 1px solid rgba(60, 73, 78, 0.4);
+}
+
+.confirm-cancel:hover {
+  background: rgba(60, 73, 78, 0.5);
+  color: #a8d8e1;
+}
+
+.confirm-logout {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff7a8a;
+  border: 1px solid rgba(255, 71, 87, 0.4);
+}
+
+.confirm-logout:hover {
+  background: rgba(255, 71, 87, 0.3);
+  color: #ff9aaa;
 }

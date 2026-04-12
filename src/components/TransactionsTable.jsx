@@ -1,5 +1,10 @@
 import './PortfolioTable.css';
 
+function formatINR(value) {
+  const num = Number(value || 0);
+  return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 /**
  * Transactions history table.
  * Props:
@@ -39,11 +44,17 @@ export default function TransactionsTable({ transactions = [] }) {
                 </span>
               </td>
               <td><span className="symbol-badge">{tx.stock_symbol}</span></td>
-              <td className="align-right tabular">{tx.quantity.toLocaleString()}</td>
-              <td className="align-right tabular">${tx.price.toFixed(2)}</td>
-              <td className="align-right tabular bold">${tx.total_amount.toFixed(2)}</td>
+              <td className="align-right tabular">{Number(tx.quantity || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
+              <td className="align-right tabular">{formatINR(tx.price)}</td>
+              <td className="align-right tabular bold">{formatINR(tx.total_amount)}</td>
               <td className="align-right muted">
-                {new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(tx.created_at).toLocaleString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </td>
             </tr>
           ))}
