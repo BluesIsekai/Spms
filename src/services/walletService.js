@@ -4,6 +4,10 @@ function requireSupabase() {
   if (!supabase) throw new Error('Supabase is not configured.');
 }
 
+function makeChannelName(base, userId) {
+  return `${base}-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
  * Fetch or initialize the paper trading wallet for a user.
  */
@@ -73,7 +77,7 @@ export async function updateWalletBalance(userId, balance) {
 export function subscribeWallet(userId, callback) {
   requireSupabase();
   const channel = supabase
-    .channel('wallet-changes')
+    .channel(makeChannelName('wallet-changes', userId))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'paper_wallet', filter: `user_id=eq.${userId}` },

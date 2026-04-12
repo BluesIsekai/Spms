@@ -5,6 +5,10 @@ function requireSupabase() {
   if (!supabase) throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env.local file.');
 }
 
+function makeChannelName(base, userId) {
+  return `${base}-${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 
 // ─── Holdings ────────────────────────────────────────────────────────────────
 
@@ -241,7 +245,7 @@ export async function removeFromWatchlist(userId, symbol) {
 export function subscribeHoldings(userId, callback) {
   requireSupabase();
   const channel = supabase
-    .channel('holdings-changes')
+    .channel(makeChannelName('holdings-changes', userId))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'holdings', filter: `user_id=eq.${userId}` },
@@ -257,7 +261,7 @@ export function subscribeHoldings(userId, callback) {
 export function subscribeTransactions(userId, callback) {
   requireSupabase();
   const channel = supabase
-    .channel('transactions-changes')
+    .channel(makeChannelName('transactions-changes', userId))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` },
@@ -273,7 +277,7 @@ export function subscribeTransactions(userId, callback) {
 export function subscribeWatchlist(userId, callback) {
   requireSupabase();
   const channel = supabase
-    .channel('watchlist-changes')
+    .channel(makeChannelName('watchlist-changes', userId))
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'watchlist', filter: `user_id=eq.${userId}` },
