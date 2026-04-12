@@ -1,0 +1,71 @@
+/* ── App.css ── */
+
+/* Google Fonts: Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* App shell */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #121317;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: #121317;
+}
+
+/* Placeholder page */
+.placeholder-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #121317;
+  min-height: calc(100vh - 60px);
+}
+
+.placeholder-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+  background: #1a1b20;
+  border-radius: 12px;
+  border: 1px solid rgba(60, 73, 78, 0.2);
+  max-width: 360px;
+}
+
+.placeholder-icon {
+  width: 80px;
+  height: 80px;
+  background: rgba(60, 73, 78, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-inner h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e3e2e8;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.placeholder-inner p {
+  font-size: 14px;
+  color: #5a6872;
+  margin: 0;
+  line-height: 1.6;
+}

@@ -1,0 +1,27 @@
+/* Shared card styles across all pages */
+.ui-card {
+  background: #1a1b20;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid rgba(60, 73, 78, 0.3);
+  transition: all 0.2s ease;
+}
+
+.ui-card:hover {
+  border-color: rgba(60, 73, 78, 0.5);
+  background: #1f2128;
+}
+
+.ui-card.compact {
+  padding: 16px;
+}
+
+.ui-card.minimal {
+  padding: 12px;
+  border: 1px solid rgba(60, 73, 78, 0.15);
+}
+
+.ui-card.highlighted {
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  background: rgba(0, 212, 255, 0.02);
+}

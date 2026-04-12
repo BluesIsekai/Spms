@@ -1,0 +1,45 @@
+/* Page header styles */
+.ui-page-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid rgba(60, 73, 78, 0.3);
+  padding-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.ui-page-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.ui-page-header p {
+  color: #859398;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .ui-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-header-actions {
+    width: 100%;
+  }
+}
