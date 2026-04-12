@@ -42,6 +42,12 @@
   max-width: 600px;
 }
 
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .settings-form {
   background: #1a1b20;
   padding: 24px;
@@ -363,7 +369,7 @@
   color: #a1aeb4;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1023px) {
   .page-container {
     padding: 18px;
   }
@@ -379,20 +385,90 @@
   .page-table {
     min-width: 900px;
   }
-}
 
-@media (max-width: 640px) {
-  .summary-cards {
-    grid-template-columns: 1fr;
+  .watchlist-controls-card,
+  .transaction-filters-card,
+  .settings-form,
+  .danger-zone {
+    padding: 20px;
   }
 
   .table-controls {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 767px) {
+  .page-container {
+    padding: 14px;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .summary-card {
+    padding: 18px 16px;
+  }
+
+  .sc-value {
+    font-size: 22px;
+  }
+
+  .watchlist-controls-card,
+  .transaction-filters-card,
+  .settings-form,
+  .danger-zone {
+    padding: 16px;
+  }
+
+  .table-controls {
+    flex-direction: column;
     align-items: stretch;
   }
 
   .table-filter {
     width: 100%;
+  }
+
+  .watchlist-controls {
+    flex-direction: column;
+  }
+
+  .watchlist-controls .ui-button,
+  .watchlist-controls .table-filter {
+    width: 100%;
+  }
+
+  .actions-row {
+    flex-direction: column;
+  }
+
+  .actions-row .ui-button {
+    width: 100%;
+  }
+
+  .settings-content {
+    max-width: none;
+  }
+
+  .form-group-checkbox {
+    align-items: flex-start;
+  }
+
+  .primary-btn,
+  .danger-btn {
+    width: 100%;
+  }
+
+  .page-table {
+    min-width: 760px;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -460,7 +536,7 @@
 }
 
 /* Ensure proper responsive behavior for new components */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .watchlist-controls {
     flex-direction: column;
     gap: 12px;

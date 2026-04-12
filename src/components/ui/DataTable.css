@@ -6,6 +6,56 @@
   overflow: hidden;
 }
 
+.ui-data-table-mobile {
+  display: none;
+  padding: 14px;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.ui-data-table-mobile-card {
+  background: #171a20;
+  border: 1px solid rgba(60, 73, 78, 0.22);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ui-data-table-mobile-card.clickable {
+  cursor: pointer;
+}
+
+.ui-data-table-mobile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ui-data-table-mobile-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #859398;
+}
+
+.ui-data-table-mobile-value {
+  font-size: 13px;
+  color: #e3e2e8;
+  text-align: right;
+  word-break: break-word;
+}
+
+.ui-data-table-mobile-empty {
+  padding: 18px 12px;
+  color: #859398;
+  text-align: center;
+  font-size: 14px;
+}
+
 .data-table-wrapper {
   overflow-x: auto;
   overflow-y: hidden;
@@ -108,5 +158,13 @@
   .ui-data-table td {
     padding: 10px 12px;
     font-size: 12px;
+  }
+
+  .data-table-wrapper {
+    display: none;
+  }
+
+  .ui-data-table-mobile {
+    display: flex;
   }
 }

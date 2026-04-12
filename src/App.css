@@ -11,6 +11,7 @@
   overflow: hidden;
   background: #121317;
   font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
 }
 
 .app-main {
@@ -20,6 +21,52 @@
   min-width: 0;
   overflow: hidden;
   background: #121317;
+}
+
+.mobile-sidebar-toggle {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 1105;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(60, 73, 78, 0.35);
+  background: rgba(13, 14, 18, 0.94);
+  backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
+}
+
+.mobile-sidebar-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #e3e2e8;
+}
+
+.app-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(3, 6, 12, 0.64);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.app-sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* Placeholder page */
@@ -68,4 +115,10 @@
   color: #5a6872;
   margin: 0;
   line-height: 1.6;
+}
+
+@media (max-width: 1023px) {
+  .mobile-sidebar-toggle {
+    display: inline-flex;
+  }
 }

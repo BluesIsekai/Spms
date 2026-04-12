@@ -84,6 +84,63 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
           })}
         </tbody>
       </table>
+
+      <div className="portfolio-mobile-cards">
+        {holdings.map((h) => {
+          const quantity = Number(h.quantity || 0);
+          const avgBuyPrice = Number(h.average_buy_price || 0);
+          const quote = liveQuotes[h.stock_symbol] || {};
+          const currency = quote.currency || h.holding_currency || inferCurrencyFromSymbol(h.stock_symbol, 'USD');
+          const currentPrice = Number(quote.price || livePrices[h.stock_symbol] || avgBuyPrice);
+          const rowPL = (currentPrice - avgBuyPrice) * quantity;
+          const rowPLPercent = avgBuyPrice > 0 ? ((currentPrice - avgBuyPrice) / avgBuyPrice) * 100 : 0;
+          const valueInInr = convertToINR(currentPrice * quantity, currency, fxRates);
+          const plInInr = convertToINR(rowPL, currency, fxRates);
+          const isUp = plInInr >= 0;
+
+          return (
+            <button
+              key={h.stock_symbol}
+              type="button"
+              id={`holding-card-${h.stock_symbol}`}
+              className="portfolio-mobile-card"
+              onClick={() => onSelectSymbol?.(h.stock_symbol)}
+            >
+              <div className="portfolio-mobile-card-head">
+                <span className="symbol-badge">{h.stock_symbol}</span>
+                <span className={`portfolio-mobile-card-value ${isUp ? 'up' : 'down'}`}>
+                  {isUp ? '+' : '-'}{formatINR(Math.abs(plInInr))}
+                </span>
+              </div>
+
+              <div className="portfolio-mobile-card-grid">
+                <div>
+                  <span className="portfolio-mobile-label">Quantity</span>
+                  <span className="portfolio-mobile-value">{quantity.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                </div>
+                <div>
+                  <span className="portfolio-mobile-label">Avg Price</span>
+                  <span className="portfolio-mobile-value">{formatAmount(avgBuyPrice, currency)}</span>
+                </div>
+                <div>
+                  <span className="portfolio-mobile-label">Current</span>
+                  <span className="portfolio-mobile-value">{formatAmount(currentPrice, currency)}</span>
+                </div>
+                <div>
+                  <span className="portfolio-mobile-label">P&amp;L %</span>
+                  <span className={`portfolio-mobile-value ${isUp ? 'up' : 'down'}`}>
+                    {isUp ? '+' : ''}{rowPLPercent.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="portfolio-mobile-span">
+                  <span className="portfolio-mobile-label">Value</span>
+                  <span className="portfolio-mobile-value bold">{formatINR(valueInInr)}</span>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

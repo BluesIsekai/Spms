@@ -518,6 +518,77 @@
   }
 }
 
+@media (max-width: 1023px) {
+  .symbol-tabs {
+    padding: 0 16px;
+  }
+
+  .panel-main {
+    padding: 6px 16px 16px;
+  }
+
+  .chart-price-header {
+    gap: 10px;
+  }
+
+  .info-panel {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 767px) {
+  .symbol-tabs {
+    padding: 0 12px;
+  }
+
+  .sym-tab {
+    padding: 11px 14px;
+    font-size: 12px;
+  }
+
+  .panel-main {
+    padding: 6px 12px 14px;
+    gap: 14px;
+  }
+
+  .chart-price-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cph-price-block {
+    text-align: left;
+  }
+
+  .cph-price {
+    font-size: 24px;
+  }
+
+  .stats-grid {
+    gap: 12px;
+  }
+
+  .info-panel {
+    padding: 16px;
+  }
+
+  .trend-card {
+    padding: 12px;
+  }
+
+  .order-input {
+    font-size: 24px;
+  }
+
+  .trade-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 720px) {
   .trade-buttons {
     grid-template-columns: 1fr;

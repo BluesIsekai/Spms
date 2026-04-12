@@ -71,6 +71,50 @@ export default function TransactionsTable({ transactions = [] }) {
           );})}
         </tbody>
       </table>
+
+      <div className="transactions-mobile-cards">
+        {transactions.map((tx) => {
+          const priceCurrency = inferCurrencyFromSymbol(tx.stock_symbol, 'USD');
+
+          return (
+            <div key={tx.id} id={`tx-card-${tx.id}`} className="transaction-mobile-card">
+              <div className="transaction-mobile-card-head">
+                <span className={`type-badge ${tx.transaction_type === 'BUY' ? 'buy' : 'sell'}`}>
+                  {tx.transaction_type}
+                </span>
+                <span className="symbol-badge">{tx.stock_symbol}</span>
+              </div>
+
+              <div className="transaction-mobile-grid">
+                <div>
+                  <span className="portfolio-mobile-label">Qty</span>
+                  <span className="portfolio-mobile-value">{Number(tx.quantity || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                </div>
+                <div>
+                  <span className="portfolio-mobile-label">Price</span>
+                  <span className="portfolio-mobile-value">{formatByCurrency(tx.price, priceCurrency)}</span>
+                </div>
+                <div>
+                  <span className="portfolio-mobile-label">Total</span>
+                  <span className="portfolio-mobile-value bold">{formatINR(tx.total_amount)}</span>
+                </div>
+                <div className="transaction-mobile-span">
+                  <span className="portfolio-mobile-label">Date</span>
+                  <span className="portfolio-mobile-value muted">
+                    {new Date(tx.created_at).toLocaleString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -61,12 +61,34 @@ const NAV_ITEMS = [
  *  - watchlist {Array<{symbol, price, change}>}
  *  - totalValue {number}
  *  - onSymbolClick {function}
+ *  - mobileOpen {boolean}
+ *  - onMobileClose {function}
  */
-export default function Sidebar({ activePage, onNavigate, watchlist = [], totalValue = 0, onSymbolClick }) {
+export default function Sidebar({
+  activePage,
+  onNavigate,
+  watchlist = [],
+  totalValue = 0,
+  onSymbolClick,
+  mobileOpen = false,
+  onMobileClose,
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} id="app-sidebar">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}${mobileOpen ? ' mobile-open' : ''}`} id="app-sidebar">
+      <button
+        type="button"
+        className="sidebar-mobile-close"
+        aria-label="Close navigation"
+        onClick={() => onMobileClose?.()}
+      >
+        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
       {/* Logo */}
       <div className="sidebar-logo" onClick={() => onNavigate?.('dashboard')}>
         <div className="logo-icon">

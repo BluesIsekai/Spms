@@ -47,6 +47,7 @@ function App() {
   const [activeSymbol, setActiveSymbol] = useState('RELIANCE.NS');
   const [holdings, setHoldings] = useState([]);
   const [fxRates, setFxRates] = useState({});
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -54,6 +55,10 @@ function App() {
   // Determine if current route is an auth page
   const isAuthPage = ['/login', '/signup', '/forgot-password'].includes(location.pathname);
   const activePage = getPageFromPath(location.pathname);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -132,6 +137,7 @@ function App() {
   }, [holdings, prices, fxRates]);
 
   const handleNavigate = (page) => {
+    setSidebarOpen(false);
     if (page === 'dashboard') navigate('/dashboard');
     if (page === 'portfolio') navigate('/portfolio');
     if (page === 'watchlist') navigate('/watchlist');
@@ -147,12 +153,36 @@ function App() {
   return (
     <div className="app-shell" id="app-root">
       {!isAuthPage && (
+        <>
+          <button
+            type="button"
+            className="mobile-sidebar-toggle"
+            aria-label={isSidebarOpen ? 'Close navigation' : 'Open navigation'}
+            aria-controls="app-sidebar"
+            aria-expanded={isSidebarOpen}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <button
+            type="button"
+            className={`app-sidebar-backdrop${isSidebarOpen ? ' visible' : ''}`}
+            aria-label="Close navigation overlay"
+            onClick={() => setSidebarOpen(false)}
+          />
+        </>
+      )}
+      {!isAuthPage && (
         <Sidebar
           activePage={activePage}
           onNavigate={handleNavigate}
           watchlist={liveWatchlist}
           totalValue={sidebarPortfolioValue}
           onSymbolClick={handleSymbolClick}
+          mobileOpen={isSidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
         />
       )}
       <main className="app-main" id="app-main" role="main">

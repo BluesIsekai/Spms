@@ -173,9 +173,49 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1023px) {
   .summary-cards-row {
-    grid-template-columns: 1fr;
+    padding: 14px 16px 16px;
+    gap: 12px;
+  }
+
+  .bottom-section {
+    padding: 8px 16px 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .summary-cards-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px 14px 16px;
+  }
+
+  .summary-card {
+    padding: 14px 14px 12px;
+  }
+
+  .summary-card-value {
+    font-size: 18px;
+  }
+
+  .trade-error-banner {
+    margin: 0 14px 12px;
+  }
+
+  .bottom-section {
+    padding: 8px 14px 18px;
+  }
+
+  .bottom-tabs {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .portfolio-value-strip {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
   }
 }
 
