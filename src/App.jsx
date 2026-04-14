@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import StockChart from './pages/StockChart';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useStockPolling } from './hooks/useStockPolling';
 import { useAuth } from './hooks/useAuth.jsx';
@@ -36,6 +37,7 @@ const SUPABASE_CONFIGURED = !!supabase;
 
 function getPageFromPath(pathname) {
   if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
+  if (pathname.startsWith('/chart')) return 'chart';
   if (pathname.startsWith('/portfolio')) return 'portfolio';
   if (pathname.startsWith('/watchlist')) return 'watchlist';
   if (pathname.startsWith('/transactions')) return 'transactions';
@@ -139,6 +141,7 @@ function App() {
   const handleNavigate = (page) => {
     setSidebarOpen(false);
     if (page === 'dashboard') navigate('/dashboard');
+    if (page === 'chart') navigate(`/chart/${activeSymbol || 'RELIANCE.NS'}`);
     if (page === 'portfolio') navigate('/portfolio');
     if (page === 'watchlist') navigate('/watchlist');
     if (page === 'transactions') navigate('/transactions');
@@ -147,7 +150,7 @@ function App() {
 
   const handleSymbolClick = (symbol) => {
     setActiveSymbol(symbol);
-    navigate('/dashboard');
+    navigate(`/chart/${symbol}`);
   };
 
   return (
@@ -203,13 +206,19 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard
-                    activeSymbol={activeSymbol}
-                    setActiveSymbol={setActiveSymbol}
                     appPrices={prices}
                     lastUpdated={lastUpdated}
                     connected={connected}
                     onRefresh={refresh}
                   />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/chart/:symbol"
+              element={
+                <ProtectedRoute>
+                  <StockChart appPrices={prices} />
                 </ProtectedRoute>
               }
             />
