@@ -150,42 +150,7 @@ export default function StockPanel({ symbol, quote, availableBalance = 0, onSymb
           {/* Chart — passes price for live-tick nudge */}
           <StockChart symbol={symbol} livePrice={price} height={440} />
 
-          <div className="trend-card trend-card-inline">
-            <div className="trend-card-head">
-              <span className="trend-title">Trend Analysis</span>
-              <span className={`trend-badge ${trend?.direction?.toLowerCase() || 'neutral'}`}>
-                {trendLoading ? 'Analyzing' : trend?.direction || 'N/A'}
-              </span>
-            </div>
-
-            <div className="trend-metrics">
-              <div className="trend-row">
-                <span className="trend-label">Confidence Factor</span>
-                <span className="trend-val">{trend ? `${trend.confidence.toFixed(0)}%` : '—'}</span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Momentum Engine</span>
-                <span className={`trend-val ${trend?.momentumPct >= 0 ? 'up' : 'down'}`}>
-                  {trend ? `${trend.momentumPct >= 0 ? '+' : ''}${trend.momentumPct.toFixed(2)}%` : '—'}
-                </span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Execution Signal</span>
-                <span className="trend-val">{trend?.signal || '—'}</span>
-              </div>
-              <div className="trend-row">
-                <span className="trend-label">Recommendation</span>
-                <span className="trend-val rec">{trend?.recommendation || '—'}</span>
-              </div>
-            </div>
-
-            <div className="trend-ma-row">
-              <span>MA5: {trend ? `${sym}${trend.ma5.toFixed(2)}` : '—'}</span>
-              <span>MA20: {trend ? `${sym}${trend.ma20.toFixed(2)}` : '—'}</span>
-            </div>
-          </div>
-
-          {leftBottom && <div className="left-bottom-slot">{leftBottom}</div>}
+          {leftBottom && <div className="chart-below-holding-slot" style={{ marginTop: '16px' }}>{leftBottom}</div>}
         </div>
 
         {/* Right: stats + order panel */}

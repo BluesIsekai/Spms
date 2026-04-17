@@ -1,0 +1,270 @@
+/* ── FnODashboard.css ── */
+
+.fno-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: #111319;
+  overflow: hidden;
+}
+
+/* ── Top Bar Container ── */
+.db-tab-nav-container {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(66, 71, 84, 0.4);
+  background: rgba(17, 19, 25, 0.95);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ── Horizontal Navigation Tabs (Mirroring Groww) ── */
+.db-tab-nav {
+  display: flex;
+  gap: 32px;
+  padding: 0 32px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.db-tab-nav::-webkit-scrollbar { display: none; }
+
+.db-tab-btn {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #7b859a;
+  padding: 16px 0 12px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.db-tab-btn:hover { color: #dce1ff; }
+
+.db-tab-btn.active { color: #dce1ff; }
+.db-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #00d4ff;
+  border-radius: 3px 3px 0 0;
+}
+
+/* ── Content Area ── */
+.db-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+}
+
+.db-content-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Explore Layout ── */
+.explore-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Enhanced Grid Sections ── */
+.db-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.db-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.db-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e2e2eb;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.db-view-all {
+  font-size: 13px;
+  font-weight: 600;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 80px;
+  text-align: center;
+}
+
+.db-view-all:hover {
+  background: rgba(0, 212, 255, 0.2);
+}
+
+/* Section Sub-Tabs (Equity vs Commodities) */
+.section-subtabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid rgba(66, 71, 84, 0.4);
+  margin-bottom: 8px;
+}
+
+.subtab-btn {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7b859a;
+  padding: 8px 12px;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.subtab-btn:hover { color: #dce1ff; }
+
+.subtab-btn.active { color: #00d4ff; }
+.subtab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #00d4ff;
+}
+
+/* Horizontal Stock Grid */
+.gd-grid-horizontal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* ── Custom Simple Commodity Block ── */
+.gd-commodity-simple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.gd-commodity-simple:hover {
+  background: rgba(42, 46, 57, 0.5);
+}
+
+.commodity-icon {
+  font-size: 32px;
+  margin-bottom: 4px;
+}
+
+.commodity-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e2eb;
+}
+
+.commodity-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #dce1ff;
+  font-variant-numeric: tabular-nums;
+}
+.gd-card {
+  background: #1a1e29;
+  border: 1px solid rgba(66, 71, 84, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gd-card:hover {
+  background: #232836;
+  border-color: rgba(0, 212, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.gd-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.gd-fno-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.gd-symbol {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2e2eb;
+}
+
+.gd-name {
+  font-size: 12px;
+  color: #8c909f;
+  margin-top: 4px;
+}
+
+.gd-price-block {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.gd-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #dce1ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.gd-change {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.gd-change.up { color: #00D09C; }
+.gd-change.down { color: #EB5B3C; }
+
+/* Empty state */
+.gd-empty {
+  color: #8c909f;
+  background: rgba(26, 30, 41, 0.5);
+  border: 1px dashed rgba(66, 71, 84, 0.3);
+  padding: 24px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import FnODashboard from './pages/FnODashboard';
 import StockChart from './pages/StockChart';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useStockPolling } from './hooks/useStockPolling';
@@ -18,6 +19,9 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ProtectedRoute from './components/ProtectedRoute';
+import ExploreCategory from './pages/ExploreCategory';
+import GlobalIndices from './pages/GlobalIndices';
+import MutualFunds from './pages/MutualFunds';
 import './App.css';
 
 
@@ -37,6 +41,8 @@ const SUPABASE_CONFIGURED = !!supabase;
 
 function getPageFromPath(pathname) {
   if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
+  if (pathname === '/fno') return 'fno';
+  if (pathname === '/mutual-funds') return 'mutual_funds';
   if (pathname.startsWith('/chart')) return 'chart';
   if (pathname.startsWith('/portfolio')) return 'portfolio';
   if (pathname.startsWith('/watchlist')) return 'watchlist';
@@ -141,6 +147,8 @@ function App() {
   const handleNavigate = (page) => {
     setSidebarOpen(false);
     if (page === 'dashboard') navigate('/dashboard');
+    if (page === 'fno') navigate('/fno');
+    if (page === 'mutual_funds') navigate('/mutual-funds');
     if (page === 'chart') navigate(`/chart/${activeSymbol || 'RELIANCE.NS'}`);
     if (page === 'portfolio') navigate('/portfolio');
     if (page === 'watchlist') navigate('/watchlist');
@@ -215,6 +223,22 @@ function App() {
               }
             />
             <Route
+              path="/fno"
+              element={
+                <ProtectedRoute>
+                  <FnODashboard appPrices={prices} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mutual-funds"
+              element={
+                <ProtectedRoute>
+                  <MutualFunds appPrices={prices} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/chart/:symbol"
               element={
                 <ProtectedRoute>
@@ -253,6 +277,22 @@ function App() {
                   <Settings />
                 </ProtectedRoute>
               } 
+            />
+            <Route 
+              path="/explore/:categoryId" 
+              element={
+                <ProtectedRoute>
+                  <ExploreCategory />
+                </ProtectedRoute>
+              } 
+            />
+            <Route
+              path="/global-indices"
+              element={
+                <ProtectedRoute>
+                  <GlobalIndices />
+                </ProtectedRoute>
+              }
             />
             <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
           </Routes>

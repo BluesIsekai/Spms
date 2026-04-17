@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
-import { getFxRatesToINR, getHistoricalData } from '../services/yahooStockApi';
+import { getFxRatesToINR, getHistoricalData, searchSymbols } from '../services/yahooStockApi';
 import {
   fetchHoldings,
   fetchTransactions,
@@ -14,21 +14,24 @@ import {
 import { fetchWallet, subscribeWallet } from '../services/walletService';
 import { supabase } from '../services/supabaseClient';
 import { convertToINR, inferCurrencyFromSymbol } from '../utils/currency';
+import { getCompanyLogo } from '../utils/logos';
+import SymbolLogo from '../components/ui/SymbolLogo';
 import './Dashboard.css';
 
 const DEFAULT_BALANCE = 100000;
 
-// Fallback watchlist when user has no Supabase items
+// Popular Indian Stocks as a fallback to form the "Explore" Grid
 const DEFAULT_WATCHLIST = [
   { stock_symbol: 'RELIANCE.NS', company_name: 'Reliance Industries' },
   { stock_symbol: 'TCS.NS',      company_name: 'Tata Consultancy Services' },
-  { stock_symbol: 'INFY.NS',     company_name: 'Infosys' },
   { stock_symbol: 'HDFCBANK.NS', company_name: 'HDFC Bank' },
+  { stock_symbol: 'ICICIBANK.NS', company_name: 'ICICI Bank' },
+  { stock_symbol: 'INFY.NS',     company_name: 'Infosys' },
   { stock_symbol: 'SBIN.NS',     company_name: 'State Bank of India' },
 ];
 
-// Market indices
-const INDEX_SYMBOLS = ['^NSEI', '^BSESN'];
+// Market indices (Added Bank Nifty)
+const INDEX_SYMBOLS = ['^NSEI', '^BSESN', '^NSEBANK', '^DJI', 'YM=F', 'GIFTNIFTY.NS', '^IXIC', '^GSPC', '^N225', '^HSI', '^GDAXI', '^FCHI', '^KS11', '^FTSE'];
 
 const SUPABASE_CONFIGURED = !!supabase;
 
@@ -44,9 +47,74 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+function StockGrid({ stocks, type = "normal", idPrefix = "", openChart }) {
+  if (!stocks || stocks.length === 0) return <div className="gd-empty">No data available</div>;
+  return (
+    <div className={`gd-stock-grid ${type === 'small' ? 'gd-stock-grid-small' : ''}`}>
+      {stocks.map(stock => {
+        const isUp = stock.changePct >= 0;
+        return (
+          <button key={`${idPrefix}-${stock.symbol}`} className={`gd-stock-card ${type === 'small' ? 'small' : ''}`} onClick={() => openChart(stock.symbol)}>
+            <div className="gd-stock-icon" style={{ padding: 0, overflow: 'hidden', background: '#fff' }}>
+              <img 
+                 src={getCompanyLogo(stock.symbol) || `https://ui-avatars.com/api/?name=${encodeURIComponent(stock.symbol.replace(/=F|\.NS|\.BO|-USD/g, ''))}&background=232836&color=fff&size=64`}
+                 alt={stock.symbol}
+                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                 onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(stock.symbol.replace(/=F|\.NS|\.BO|-USD/g, ''))}&background=232836&color=fff&size=64`; }}
+              />
+            </div>
+            <div className="gd-stock-name">{stock.name}</div>
+            <div className="gd-stock-price-row">
+              <span className="gd-card-price">{stock.price > 0 ? `₹${stock.price.toFixed(2)}` : '—'}</span>
+            </div>
+            <div className="gd-stock-change-row">
+              <span className={`gd-card-change ${isUp ? 'up' : 'down'}`}>
+                {isUp ? '+' : ''}{stock.change.toFixed(2)} ({isUp ? '+' : ''}{stock.changePct.toFixed(2)}%)
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRefresh }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Tabs state
+  const [activeTab, setActiveTab] = useState('Explore'); // 'Explore', 'Holdings', 'Positions', 'Orders', 'Watchlists'
+  const [orderSubTab, setOrderSubTab] = useState('All'); // 'All', 'Completed', 'Pending', 'Cancelled'
+  const [topMoversTab, setTopMoversTab] = useState('Gainers'); // 'Gainers', 'Losers'
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounced symbol search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsSearching(true);
+      searchSymbols(searchQuery)
+        .then(res => setSearchResults(res || []))
+        .catch(() => setSearchResults([]))
+        .finally(() => setIsSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Custom LocalStorage Watchlists State
+  const [customWatchlists, setCustomWatchlists] = useState([]);
+  const [activeWatchlistId, setActiveWatchlistId] = useState('default-db');
+  const [isAddingWatchlist, setIsAddingWatchlist] = useState(false);
+  const [newWatchlistName, setNewWatchlistName] = useState('');
+
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
 
   const [holdings, setHoldings]         = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -54,6 +122,32 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [fxRates, setFxRates]           = useState({});
   const [prevCloseBySymbol, setPrevCloseBySymbol] = useState({});
+
+  // ── Local Storage Custom Watchlists ───────────────────────────────────────
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('spms_custom_watchlists');
+      if (stored) {
+        setCustomWatchlists(JSON.parse(stored));
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleAddCustomList = (e) => {
+    e.preventDefault();
+    if (!newWatchlistName.trim()) return;
+    const newList = {
+      id: Date.now().toString(),
+      name: newWatchlistName.trim(),
+      symbols: []
+    };
+    const updated = [...customWatchlists, newList];
+    setCustomWatchlists(updated);
+    try { localStorage.setItem('spms_custom_watchlists', JSON.stringify(updated)); } catch(e){}
+    setNewWatchlistName('');
+    setIsAddingWatchlist(false);
+    setActiveWatchlistId(newList.id);
+  };
 
   // ── Data loading ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -66,9 +160,8 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
         { stock_symbol: 'INFY.NS',     quantity: 15, average_buy_price: 1500 },
       ]);
       setTransactions([
-        { id: 1, stock_symbol: 'RELIANCE.NS', transaction_type: 'BUY', quantity: 10, price: 2800, total_amount: 28000, created_at: new Date(Date.now() - 7200000).toISOString() },
-        { id: 2, stock_symbol: 'TCS.NS',      transaction_type: 'BUY', quantity: 5,  price: 3600, total_amount: 18000, created_at: new Date(Date.now() - 86400000).toISOString() },
-        { id: 3, stock_symbol: 'INFY.NS',     transaction_type: 'SELL', quantity: 3, price: 1520, total_amount: 4560,  created_at: new Date(Date.now() - 259200000).toISOString() },
+        { id: 1, stock_symbol: 'RELIANCE.NS', transaction_type: 'BUY', quantity: 10, price: 2800, status: 'COMPLETED', total_amount: 28000, created_at: new Date(Date.now() - 7200000).toISOString() },
+        { id: 2, stock_symbol: 'TCS.NS',      transaction_type: 'BUY', quantity: 5,  price: 3600, status: 'COMPLETED', total_amount: 18000, created_at: new Date(Date.now() - 86400000).toISOString() },
       ]);
       setWallet({ virtual_balance: DEFAULT_BALANCE });
       setWatchlistItems(DEFAULT_WATCHLIST);
@@ -77,7 +170,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
 
     Promise.all([
       fetchHoldings(user.id),
-      fetchTransactions(user.id, 20),
+      fetchTransactions(user.id, 50), // Fetch more for the orders tab
       fetchWallet(user.id),
       fetchWatchlist(user.id),
     ])
@@ -93,7 +186,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
       fetchHoldings(user.id).then(setHoldings).catch(() => {})
     );
     const unsub2 = subscribeTransactions(user.id, () =>
-      fetchTransactions(user.id, 20).then(setTransactions).catch(() => {})
+      fetchTransactions(user.id, 50).then(setTransactions).catch(() => {})
     );
     const unsub3 = subscribeWallet(user.id, () =>
       fetchWallet(user.id).then(setWallet).catch(() => {})
@@ -110,8 +203,10 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
     [watchlistItems]
   );
   const heldSymbols = useMemo(() => holdings.map(h => h.stock_symbol), [holdings]);
+  const defaultSymbols = DEFAULT_WATCHLIST.map(w => w.stock_symbol);
+  
   const allPolled = useMemo(
-    () => [...new Set([...watchlistSymbols, ...heldSymbols, ...INDEX_SYMBOLS])],
+    () => [...new Set([...watchlistSymbols, ...heldSymbols, ...defaultSymbols, ...INDEX_SYMBOLS])],
     [watchlistSymbols.join(), heldSymbols.join()]
   );
 
@@ -126,7 +221,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
     getFxRatesToINR(currencies).then(r => setFxRates(r || {})).catch(() => {});
   }, [holdings, mergedPrices]);
 
-  // Prev close fallback
+  // Prev close fallback (for holdings P/L calculation if quote prevClose is missing)
   useEffect(() => {
     let cancelled = false;
     const targets = holdings
@@ -181,362 +276,541 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
     }, 0);
 
     const totalPnL = portfolioValue - invested;
+    const totalPnLPct = invested > 0 ? (totalPnL / invested) * 100 : 0;
     const todayPnL = portfolioValue - previousCloseValue;
     const todayPnLPct = previousCloseValue > 0 ? (todayPnL / previousCloseValue) * 100 : 0;
 
-    return { portfolioValue, invested, totalPnL, todayPnL, todayPnLPct };
+    return { portfolioValue, invested, totalPnL, totalPnLPct, todayPnL, todayPnLPct };
   }, [holdings, mergedPrices, fxRates, prevCloseBySymbol]);
 
-  const walletBalance = Number(wallet?.virtual_balance ?? DEFAULT_BALANCE);
-
-  // ── Watchlist enriched with live prices & movers ──────────────────────────
-  const enrichedWatchlist = useMemo(() =>
-    watchlistItems.map(item => {
+  // Use either actual watchlist or default for explore grid
+  const exploreStocks = useMemo(() => {
+    const source = watchlistItems.length > 0 ? watchlistItems : DEFAULT_WATCHLIST;
+    return source.map(item => {
       const sym = item.stock_symbol || item.yahoo_symbol;
       const q = mergedPrices[sym] || {};
       return {
         symbol: sym,
-        name: item.company_name || sym,
+        name: item.company_name || sym.replace('.NS', ''),
         price: q.price || 0,
         change: q.change || 0,
         changePct: q.changePct || 0,
         currency: q.currency || 'INR',
       };
-    }),
-    [watchlistItems, mergedPrices]
-  );
+    });
+  }, [watchlistItems, mergedPrices]);
 
-  const topMovers = useMemo(() => {
-    const sorted = [...enrichedWatchlist].sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
-    const gainers = sorted.filter(s => s.changePct > 0).slice(0, 3);
-    const losers  = sorted.filter(s => s.changePct < 0).slice(0, 3);
-    return { gainers, losers };
-  }, [enrichedWatchlist]);
+  const baseExtended = useMemo(() => {
+    return [...exploreStocks, ...exploreStocks, ...exploreStocks];
+  }, [exploreStocks]);
 
-  const recentTransactions = useMemo(() => transactions.slice(0, 5), [transactions]);
+  const getSlice = (start) => {
+    return baseExtended.slice(start, start + 5);
+  };
+
+  const topGainers = useMemo(() => {
+    return [...baseExtended].sort((a, b) => b.changePct - a.changePct).filter(s => s.changePct > 0);
+  }, [baseExtended]);
+
+  const topLosers = useMemo(() => {
+    return [...baseExtended].sort((a, b) => a.changePct - b.changePct).filter(s => s.changePct < 0);
+  }, [baseExtended]);
+
+  const topGainersSlice = useMemo(() => topGainers.slice(0, 5), [topGainers]);
+  const topLosersSlice = useMemo(() => topLosers.slice(0, 5), [topLosers]);
+
+  const recentlyViewed = useMemo(() => baseExtended.slice(0, 7), [baseExtended]);
+  const mostBought = useMemo(() => getSlice(3), [baseExtended]);
+  const mostTradedMtf = useMemo(() => getSlice(1), [baseExtended]);
+  const topIntraday = useMemo(() => getSlice(2), [baseExtended]);
+  const volumeShockers = useMemo(() => getSlice(0), [baseExtended]);
+  const sectorsTrending = useMemo(() => getSlice(5), [baseExtended]);
+  const mostBoughtEtfs = useMemo(() => getSlice(4), [baseExtended]);
+
+  // Orders filtering
+  const filteredOrders = useMemo(() => {
+    if (orderSubTab === 'All') return transactions;
+    if (orderSubTab === 'Completed') return transactions; // DB currently only stores completed ones
+    return []; // Pending / Cancelled will be empty
+  }, [transactions, orderSubTab]);
 
   // Market indices
-  const nifty  = mergedPrices['^NSEI'];
-  const sensex = mergedPrices['^BSESN'];
+  const indices = [
+    { label: 'NIFTY 50', symbol: '^NSEI', data: mergedPrices['^NSEI'] },
+    { label: 'SENSEX', symbol: '^BSESN', data: mergedPrices['^BSESN'] },
+    { label: 'BANK NIFTY', symbol: '^NSEBANK', data: mergedPrices['^NSEBANK'] },
+  ];
+
+  const globalIndices = [
+    { label: 'GIFT Nifty',  symbol: 'GIFTNIFTY.NS', data: mergedPrices['GIFTNIFTY.NS'] },
+    { label: 'Dow Jones',  symbol: '^DJI',          data: mergedPrices['^DJI'] },
+    { label: 'Dow Futures',symbol: 'YM=F',          data: mergedPrices['YM=F'] },
+    { label: 'S&P 500',    symbol: '^GSPC',         data: mergedPrices['^GSPC'] },
+    { label: 'NASDAQ',     symbol: '^IXIC',         data: mergedPrices['^IXIC'] },
+    { label: 'Nikkei 225', symbol: '^N225',         data: mergedPrices['^N225'] },
+    { label: 'Hang Seng',  symbol: '^HSI',          data: mergedPrices['^HSI'] },
+    { label: 'DAX',        symbol: '^GDAXI',        data: mergedPrices['^GDAXI'] },
+    { label: 'CAC 40',     symbol: '^FCHI',         data: mergedPrices['^FCHI'] },
+    { label: 'KOSPI',      symbol: '^KS11',         data: mergedPrices['^KS11'] },
+    { label: 'FTSE 100',   symbol: '^FTSE',         data: mergedPrices['^FTSE'] },
+  ];
 
   const openChart = (symbol) => navigate(`/chart/${symbol}`);
 
   return (
-    <div className="dashboard" id="dashboard-page">
-      {/* ── Market Indices Strip ── */}
-      <section className="mkt-indices-strip" aria-label="Market indices">
-        <div className="mkt-index-chip" id="index-nifty">
-          <span className="mkt-index-icon">📈</span>
-          <div>
-            <div className="mkt-index-label">NIFTY 50</div>
-            <div className="mkt-index-value">
-              {nifty ? nifty.price.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}
-            </div>
-          </div>
-          {nifty && (
-            <span className={`mkt-index-change ${nifty.changePct >= 0 ? 'up' : 'down'}`}>
-              {nifty.changePct >= 0 ? '▲' : '▼'} {Math.abs(nifty.changePct).toFixed(2)}%
+    <div className="groww-dashboard">
+      {/* ── TOP BAR ── */}
+      <header className="gd-topbar">
+        <div className="gd-indices-scroll">
+          {indices.map((idx) => {
+            const price = idx.data?.price;
+            const changePct = idx.data?.changePct || 0;
+            const change = idx.data?.change || 0;
+            const isUp = changePct >= 0;
+            return (
+              <div key={idx.label} className="gd-index-card" onClick={() => navigate(`/chart/${encodeURIComponent(idx.symbol)}`)} style={{ cursor: 'pointer' }}>
+                <span className="gd-index-name">{idx.label}</span>
+                <div className="gd-index-values">
+                  <span className="gd-index-price">
+                    {price ? price.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}
+                  </span>
+                  {idx.data && (
+                    <span className={`gd-index-change ${isUp ? 'up' : 'down'}`}>
+                      {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{changePct.toFixed(2)}%)
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          <div
+            className="gd-index-card gd-global-trigger"
+            onClick={() => navigate('/global-indices')}
+            style={{ cursor: 'pointer' }}
+          >
+            <span className="gd-index-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Global Indices
+              <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>
             </span>
-          )}
-        </div>
-
-        <div className="mkt-index-chip" id="index-sensex">
-          <span className="mkt-index-icon">🏦</span>
-          <div>
-            <div className="mkt-index-label">SENSEX</div>
-            <div className="mkt-index-value">
-              {sensex ? sensex.price.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : '—'}
-            </div>
-          </div>
-          {sensex && (
-            <span className={`mkt-index-change ${sensex.changePct >= 0 ? 'up' : 'down'}`}>
-              {sensex.changePct >= 0 ? '▲' : '▼'} {Math.abs(sensex.changePct).toFixed(2)}%
-            </span>
-          )}
-        </div>
-
-        <div className={`mkt-index-chip today-pl ${portfolioMetrics.todayPnL >= 0 ? 'up' : 'down'}`} id="index-today-pl">
-          <span className="mkt-index-icon">💹</span>
-          <div>
-            <div className="mkt-index-label">Today P/L</div>
-            <div className="mkt-index-value mono">
-              {portfolioMetrics.todayPnL >= 0 ? '+' : ''}₹{Math.abs(portfolioMetrics.todayPnL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </div>
-          </div>
-          <span className={`mkt-index-change ${portfolioMetrics.todayPnLPct >= 0 ? 'up' : 'down'}`}>
-            {portfolioMetrics.todayPnLPct >= 0 ? '▲' : '▼'} {Math.abs(portfolioMetrics.todayPnLPct).toFixed(2)}%
-          </span>
-        </div>
-
-        <div className="mkt-index-chip" id="index-portfolio-value">
-          <span className="mkt-index-icon">💼</span>
-          <div>
-            <div className="mkt-index-label">Portfolio Value</div>
-            <div className="mkt-index-value mono">
-              ₹{portfolioMetrics.portfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-            </div>
+            <span className="gd-index-price" style={{ color: '#666', fontSize: 11 }}>11 markets</span>
           </div>
         </div>
-
-        <div className="mkt-index-chip" id="index-watchlist-count">
-          <span className="mkt-index-icon">👁</span>
-          <div>
-            <div className="mkt-index-label">Watchlist</div>
-            <div className="mkt-index-value">{watchlistItems.length} Stocks</div>
-          </div>
-          {connected != null && (
-            <span className={`mkt-index-status ${connected ? 'live' : 'off'}`}>
-              {connected ? '● Live' : '● Off'}
-            </span>
-          )}
-        </div>
-
-        {lastUpdated && (
-          <div className="mkt-indices-refresh">
-            <button id="refresh-btn" className="refresh-btn" onClick={onRefresh} title="Refresh prices">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        
+        <div className="gd-topbar-actions">
+          <div className="gd-search-container">
+              <svg width="16" height="16" fill="none" stroke="#555" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-            </button>
-            <span className="mkt-last-updated">{new Date(lastUpdated).toLocaleTimeString('en-IN')}</span>
+              <input
+                type="text"
+                className="gd-search-input"
+                placeholder="Search stocks, ETFs, indices…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery.trim().length > 0 && (
+                <button className="gd-icon-btn" style={{ padding: 0 }} onClick={() => { setSearchQuery(''); setSearchResults([]); }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              )}
+
+              {(searchQuery.trim().length > 0) && (
+                <div className="gd-search-dropdown" style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0,
+                  background: '#1a1a1a', border: '1px solid #2e2e2e', borderRadius: '12px',
+                  marginTop: '6px', zIndex: 1000, maxHeight: '460px', overflowY: 'auto',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.7)'
+                }}>
+                  {isSearching ? (
+                    <div style={{ padding: '20px', color: '#666', fontSize: '13px', textAlign: 'center' }}>Searching market…</div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map(res => (
+                      <div
+                        key={res.symbol}
+                        style={{
+                          padding: '14px 20px', display: 'flex', alignItems: 'center',
+                          gap: '16px', cursor: 'pointer',
+                          borderBottom: '1px solid #232323', transition: 'background 0.15s'
+                        }}
+                        onClick={() => { setSearchQuery(''); setSearchResults([]); openChart(res.symbol); }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#242424'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        {/* Logo — bigger, fixed size, no shrink */}
+                        <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 8, overflow: 'hidden', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <SymbolLogo symbol={res.symbol} size={44} />
+                        </div>
+                        {/* Name + meta */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{res.shortname || res.longname || res.symbol}</span>
+                          <span style={{ fontSize: '12px', color: '#666' }}>{res.symbol} &nbsp;·&nbsp; {res.exchDisp || res.exchange} &nbsp;·&nbsp; <span style={{ color: '#444' }}>{res.quoteType}</span></span>
+                        </div>
+                        {/* Arrow hint */}
+                        <svg style={{ flexShrink: 0, color: '#444' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '20px', color: '#555', fontSize: '13px', textAlign: 'center' }}>No symbols found</div>
+                  )}
+                </div>
+              )}
+            </div>
+          <button className="gd-icon-btn gd-profile-btn" onClick={() => navigate('/settings')} title="Profile">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* ── TABS NAVIGATION ── */}
+      <nav className="gd-tabs-nav">
+        {['Explore', 'Holdings', 'Positions', 'Orders', 'Watchlists'].map(tab => (
+          <button
+            key={tab}
+            className={`gd-tab ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <main className="gd-content">
+        {/* ════════ EXPLORE TAB ════════ */}
+        {activeTab === 'Explore' && (
+          <div className="gd-tab-panel">
+            <div className="gd-explore-vertical">
+              {/* Recently Viewed */}
+              <section className="gd-explore-section">
+                <h2 className="gd-section-title">Recently Viewed</h2>
+                <StockGrid stocks={recentlyViewed} type="small" idPrefix="rv" openChart={openChart} />
+              </section>
+
+              {/* Most Bought */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Most Bought</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/most-bought')}>See More</button>
+                </div>
+                <StockGrid stocks={mostBought} idPrefix="mb" openChart={openChart} />
+              </section>
+
+              {/* Top Movers Today */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                    <h2 className="gd-section-title">Top Movers Today</h2>
+                    <div className="gd-inline-tabs">
+                       <button className={topMoversTab === 'Gainers' ? "active" : ""} onClick={() => setTopMoversTab('Gainers')}>Gainers</button>
+                       <button className={topMoversTab === 'Losers' ? "active" : ""} onClick={() => setTopMoversTab('Losers')}>Losers</button>
+                    </div>
+                  </div>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/top-movers')}>See More</button>
+                </div>
+                <StockGrid stocks={topMoversTab === 'Gainers' ? topGainersSlice : topLosersSlice} idPrefix="tm" openChart={openChart} />
+              </section>
+
+              {/* Most Traded in MTF */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Most Traded in MTF</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/most-traded-mtf')}>See More</button>
+                </div>
+                <StockGrid stocks={mostTradedMtf} idPrefix="mtf" openChart={openChart} />
+              </section>
+
+              {/* Top Intraday */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Top Intraday</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/top-intraday')}>See More</button>
+                </div>
+                <StockGrid stocks={topIntraday} idPrefix="ti" openChart={openChart} />
+              </section>
+
+              {/* Volume Shockers */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Volume Shockers</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/volume-shockers')}>See More</button>
+                </div>
+                <StockGrid stocks={volumeShockers} idPrefix="vs" openChart={openChart} />
+              </section>
+
+              {/* Sectors Trending Today */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Sectors Trending Today</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/sectors-trending')}>See More</button>
+                </div>
+                <StockGrid stocks={sectorsTrending} idPrefix="st" openChart={openChart} />
+              </section>
+
+              {/* Most Bought ETFs */}
+              <section className="gd-explore-section">
+                <div className="gd-section-header-split">
+                  <h2 className="gd-section-title">Most Bought ETFs</h2>
+                  <button className="gd-see-more-btn" onClick={() => navigate('/explore/most-bought-etfs')}>See More</button>
+                </div>
+                <StockGrid stocks={mostBoughtEtfs} idPrefix="mbetf" openChart={openChart} />
+              </section>
+            </div>
           </div>
         )}
-      </section>
 
-      <div className="dashboard-content">
-        {/* ── 2-column main layout ── */}
-        <div className="dash-grid">
-
-          {/* ═══ LEFT COLUMN ═══ */}
-          <div className="dash-col-left">
-
-            {/* My Watchlist */}
-            <section className="dash-card" aria-label="My watchlist" id="watchlist-card">
-              <div className="dash-card-header">
-                <span className="dash-card-title">My Watchlist</span>
-                <button
-                  id="manage-watchlist-btn"
-                  className="dash-card-action"
-                  onClick={() => navigate('/watchlist')}
-                >
-                  Manage →
+        {/* ════════ HOLDINGS TAB ════════ */}
+        {activeTab === 'Holdings' && (
+          <div className="gd-tab-panel">
+            {/* Portfolio Overview */}
+            <div className="gd-portfolio-card-v2">
+              <div className="gd-pc-top">
+                <div className="gd-pc-current-value">
+                   Current Value
+                   <span className="gd-pc-big-val">
+                     {isBalanceHidden ? '••••••' : `₹${portfolioMetrics.portfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                   </span>
+                </div>
+                <button className="gd-eye-btn" onClick={() => setIsBalanceHidden(!isBalanceHidden)} title={isBalanceHidden ? "Show balances" : "Hide balances"}>
+                   {isBalanceHidden ? (
+                     <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/></svg>
+                   ) : (
+                     <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                   )}
                 </button>
               </div>
 
-              <div className="watchlist-rows">
-                {enrichedWatchlist.length === 0 ? (
-                  <div className="empty-state">No stocks in watchlist</div>
-                ) : (
-                  enrichedWatchlist.map(item => (
-                    <button
-                      key={item.symbol}
-                      id={`wl-${item.symbol}`}
-                      className="wl-row"
-                      onClick={() => openChart(item.symbol)}
-                    >
-                      <div className="wl-symbol-badge">{item.symbol.replace('.NS', '').replace('.BSE', '')}</div>
-                      <div className="wl-info">
-                        <span className="wl-name">{item.name}</span>
-                        <span className="wl-symbol-full">{item.symbol}</span>
-                      </div>
-                      <div className="wl-prices">
-                        <span className="wl-price mono">
-                          {item.price > 0 ? `₹${item.price.toFixed(2)}` : '—'}
-                        </span>
-                        <span className={`wl-change ${item.changePct >= 0 ? 'up' : 'down'}`}>
-                          {item.changePct >= 0 ? '▲' : '▼'} {Math.abs(item.changePct).toFixed(2)}%
-                        </span>
-                      </div>
-                    </button>
-                  ))
-                )}
+              <div className="gd-pc-metrics">
+                 <div className="gd-pc-metric-row">
+                    <span className="gd-pc-label">1D returns</span>
+                    <span className={`gd-pc-val ${portfolioMetrics.todayPnL >= 0 ? 'up' : 'down'}`}>
+                       {isBalanceHidden ? '••••••' : (
+                         <>{portfolioMetrics.todayPnL >= 0 ? '+' : '−'}₹{Math.abs(portfolioMetrics.todayPnL).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({portfolioMetrics.todayPnL >= 0 ? '+' : '−'}{Math.abs(portfolioMetrics.todayPnLPct).toFixed(2)}%)</>
+                       )}
+                    </span>
+                 </div>
+                 <div className="gd-pc-metric-row">
+                    <span className="gd-pc-label">Total returns</span>
+                    <span className={`gd-pc-val ${portfolioMetrics.totalPnL >= 0 ? 'up' : 'down'}`}>
+                       {isBalanceHidden ? '••••••' : (
+                         <>{portfolioMetrics.totalPnL >= 0 ? '+' : '−'}₹{Math.abs(portfolioMetrics.totalPnL).toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({portfolioMetrics.totalPnL >= 0 ? '+' : '−'}{Math.abs(portfolioMetrics.totalPnLPct).toFixed(2)}%)</>
+                       )}
+                    </span>
+                 </div>
+                 <div className="gd-pc-metric-row" style={{ borderBottom: 'none' }}>
+                    <span className="gd-pc-label">Invested</span>
+                    <span className="gd-pc-val standard">
+                       {isBalanceHidden ? '••••••' : `₹${portfolioMetrics.invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+                    </span>
+                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* Recent Transactions */}
-            <section className="dash-card" aria-label="Recent transactions" id="recent-transactions-card">
-              <div className="dash-card-header">
-                <span className="dash-card-title">Recent Transactions</span>
-                <button
-                  id="view-all-txns-btn"
-                  className="dash-card-action"
-                  onClick={() => navigate('/transactions')}
-                >
-                  View All →
-                </button>
-              </div>
+            {/* Holdings List */}
+            <div className="gd-list-container">
+              {holdings.length === 0 ? (
+                <div className="gd-empty">No delivery holdings yet. Start investing!</div>
+              ) : (
+                <>
+                  <div className="gd-hr-header">
+                     <div className="gd-hr-col flex-2 left">Stock Name</div>
+                     <div className="gd-hr-col right">Market Price (1D%)</div>
+                     <div className="gd-hr-col right">Returns (%)</div>
+                     <div className="gd-hr-col right">Current (Invested)</div>
+                  </div>
+                  {holdings.map(h => {
+                    const quote = mergedPrices[h.stock_symbol];
+                    const currentPrice = quote?.price ?? Number(h.average_buy_price);
+                    const invested = Number(h.quantity) * Number(h.average_buy_price);
+                    const currentVal = Number(h.quantity) * currentPrice;
+                    const pl = currentVal - invested;
+                    const plPct = invested > 0 ? (pl / invested) * 100 : 0;
+                    const isUp = pl >= 0;
 
-              <div className="txn-rows">
-                {recentTransactions.length === 0 ? (
-                  <div className="empty-state">No transactions yet — start trading!</div>
-                ) : (
-                  recentTransactions.map(tx => (
-                    <div key={tx.id} className="txn-row">
-                      <button
-                        className="txn-symbol"
-                        id={`txn-chart-${tx.id}`}
-                        onClick={() => openChart(tx.stock_symbol)}
-                      >
-                        {tx.stock_symbol.replace('.NS', '')}
-                      </button>
-                      <span className={`txn-type ${tx.transaction_type === 'BUY' ? 'buy' : 'sell'}`}>
-                        {tx.transaction_type}
-                      </span>
-                      <span className="txn-detail mono">
-                        {tx.quantity} × ₹{Number(tx.price).toFixed(2)}
-                      </span>
-                      <span className="txn-total mono">
-                        ₹{Number(tx.total_amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </span>
-                      <span className="txn-time">{timeAgo(tx.created_at)}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
+                    const todayPct = quote?.changePct || 0;
+                    const isDayUp = todayPct >= 0;
 
-          {/* ═══ RIGHT COLUMN ═══ */}
-          <div className="dash-col-right">
-
-            {/* Portfolio Summary */}
-            <section className="dash-card" aria-label="Portfolio summary" id="portfolio-summary-card">
-              <div className="dash-card-header">
-                <span className="dash-card-title">Portfolio Summary</span>
-                <button
-                  id="view-portfolio-btn"
-                  className="dash-card-action"
-                  onClick={() => navigate('/portfolio')}
-                >
-                  Details →
-                </button>
-              </div>
-
-              <div className="portfolio-stats">
-                <div className="ps-stat">
-                  <span className="ps-stat-label">Invested</span>
-                  <span className="ps-stat-value mono">₹{portfolioMetrics.invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-                <div className="ps-stat">
-                  <span className="ps-stat-label">Current Value</span>
-                  <span className="ps-stat-value mono primary">₹{portfolioMetrics.portfolioValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-                <div className="ps-stat">
-                  <span className="ps-stat-label">Total P/L</span>
-                  <span className={`ps-stat-value mono ${portfolioMetrics.totalPnL >= 0 ? 'up' : 'down'}`}>
-                    {portfolioMetrics.totalPnL >= 0 ? '+' : ''}₹{Math.abs(portfolioMetrics.totalPnL).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="ps-stat">
-                  <span className="ps-stat-label">Cash Balance</span>
-                  <span className="ps-stat-value mono">₹{walletBalance.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                </div>
-              </div>
-
-              {/* Holdings allocation mini-bars */}
-              {holdings.length > 0 && (
-                <div className="ps-allocation">
-                  <div className="ps-alloc-label">Holdings Allocation</div>
-                  {holdings.slice(0, 4).map(h => {
-                    const price = mergedPrices[h.stock_symbol]?.price ?? h.average_buy_price;
-                    const val = price * h.quantity;
-                    const pct = portfolioMetrics.portfolioValue > 0 ? (val / portfolioMetrics.portfolioValue) * 100 : 0;
                     return (
-                      <div key={h.stock_symbol} className="ps-alloc-row">
-                        <button
-                          className="ps-alloc-symbol"
-                          id={`alloc-chart-${h.stock_symbol}`}
-                          onClick={() => openChart(h.stock_symbol)}
-                        >
-                          {h.stock_symbol.replace('.NS', '')}
-                        </button>
-                        <div className="ps-alloc-bar-track">
-                          <div className="ps-alloc-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }} />
-                        </div>
-                        <span className="ps-alloc-pct mono">{pct.toFixed(0)}%</span>
-                      </div>
+                      <button key={h.stock_symbol} className="gd-holdings-row" onClick={() => openChart(h.stock_symbol)}>
+                         <div className="gd-hr-col flex-2 left">
+                            <span className="gd-hr-title">{h.stock_symbol.replace('.NS', '')}</span>
+                            <span className="gd-hr-subtitle">{h.quantity} shares</span>
+                         </div>
+                         <div className="gd-hr-col right">
+                            <span className="gd-hr-val">{isBalanceHidden ? '••••••' : `₹${currentPrice.toFixed(2)}`}</span>
+                            <span className={`gd-hr-sub ${isDayUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `(${isDayUp ? '+' : '−'}${Math.abs(todayPct).toFixed(2)}%)`}</span>
+                         </div>
+                         <div className="gd-hr-col right">
+                            <span className={`gd-hr-val ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}${Math.abs(plPct).toFixed(2)}%`}</span>
+                            <span className={`gd-hr-sub ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}₹${Math.abs(pl).toFixed(2)}`}</span>
+                         </div>
+                         <div className="gd-hr-col right">
+                            <span className="gd-hr-val current">{isBalanceHidden ? '••••••' : `₹${currentVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}</span>
+                            <span className="gd-hr-sub invested">{isBalanceHidden ? '••••••' : `(₹${invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })})`}</span>
+                         </div>
+                      </button>
                     );
                   })}
-                </div>
+                </>
               )}
-            </section>
-
-            {/* Today's Top Movers */}
-            <section className="dash-card" aria-label="Top movers" id="top-movers-card">
-              <div className="dash-card-header">
-                <span className="dash-card-title">Today's Top Movers</span>
-                <span className="dash-card-subtitle">From your watchlist</span>
-              </div>
-
-              {topMovers.gainers.length > 0 && (
-                <div className="movers-section">
-                  <div className="movers-section-label up">▲ Gainers</div>
-                  {topMovers.gainers.map(s => (
-                    <button key={s.symbol} id={`gainer-${s.symbol}`} className="mover-row" onClick={() => openChart(s.symbol)}>
-                      <span className="mover-symbol">{s.symbol.replace('.NS', '')}</span>
-                      <span className="mover-price mono">₹{s.price.toFixed(2)}</span>
-                      <span className="mover-change up">+{s.changePct.toFixed(2)}%</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {topMovers.losers.length > 0 && (
-                <div className="movers-section">
-                  <div className="movers-section-label down">▼ Losers</div>
-                  {topMovers.losers.map(s => (
-                    <button key={s.symbol} id={`loser-${s.symbol}`} className="mover-row" onClick={() => openChart(s.symbol)}>
-                      <span className="mover-symbol">{s.symbol.replace('.NS', '')}</span>
-                      <span className="mover-price mono">₹{s.price.toFixed(2)}</span>
-                      <span className="mover-change down">{s.changePct.toFixed(2)}%</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {topMovers.gainers.length === 0 && topMovers.losers.length === 0 && (
-                <div className="empty-state">Price data loading…</div>
-              )}
-            </section>
-
-            {/* Quick Actions */}
-            <section className="dash-card" aria-label="Quick actions" id="quick-actions-card">
-              <div className="dash-card-header">
-                <span className="dash-card-title">Quick Actions</span>
-              </div>
-              <div className="quick-actions-grid">
-                <button id="qa-charts" className="qa-btn" onClick={() => navigate('/chart/RELIANCE.NS')}>
-                  <span className="qa-icon">📊</span>
-                  <span className="qa-label">View Charts</span>
-                </button>
-                <button id="qa-watchlist" className="qa-btn" onClick={() => navigate('/watchlist')}>
-                  <span className="qa-icon">+</span>
-                  <span className="qa-label">Add to Watchlist</span>
-                </button>
-                <button id="qa-portfolio" className="qa-btn" onClick={() => navigate('/portfolio')}>
-                  <span className="qa-icon">💼</span>
-                  <span className="qa-label">Portfolio</span>
-                </button>
-                <button id="qa-transactions" className="qa-btn" onClick={() => navigate('/transactions')}>
-                  <span className="qa-icon">📋</span>
-                  <span className="qa-label">Transactions</span>
-                </button>
-              </div>
-            </section>
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* ── Footer status bar ── */}
-      <footer className="dash-footer">
-        <span className="dash-footer-status">
-          <span className="dash-footer-dot live" />
-          NSE Live
-        </span>
-        <span className="dash-footer-times">IST 09:15–15:30</span>
-        <span className="dash-footer-copy">Yahoo Finance data</span>
-      </footer>
+        {/* ════════ ORDERS TAB ════════ */}
+        {activeTab === 'Orders' && (
+          <div className="gd-tab-panel">
+            {/* Orders Sub Navigation */}
+            <div className="gd-subtabs">
+              {['All', 'Completed', 'Pending', 'Cancelled'].map(sub => (
+                <button
+                  key={sub}
+                  className={`gd-subtab ${orderSubTab === sub ? 'active' : ''}`}
+                  onClick={() => setOrderSubTab(sub)}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+
+            {/* Orders List */}
+            <div className="gd-list-container">
+              {filteredOrders.length === 0 ? (
+                <div className="gd-empty">No {orderSubTab.toLowerCase()} orders found.</div>
+              ) : (
+                filteredOrders.map(tx => (
+                  <div key={tx.id} className="gd-order-item">
+                    <div className="gd-order-header">
+                      <div className="gd-order-title">
+                        <span className={`gd-order-type ${tx.transaction_type === 'BUY' ? 'buy' : 'sell'}`}>
+                          {tx.transaction_type}
+                        </span>
+                        <span>{tx.stock_symbol.replace('.NS', '')}</span>
+                      </div>
+                      <div className="gd-order-status completed">
+                        {tx.status || 'Successful'}
+                      </div>
+                    </div>
+                    <div className="gd-order-details">
+                      <div className="gd-od-item">
+                        <span className="gd-od-label">Qty</span>
+                        <span className="gd-od-val">{tx.quantity}</span>
+                      </div>
+                      <div className="gd-od-item">
+                        <span className="gd-od-label">Price</span>
+                        <span className="gd-od-val">₹{Number(tx.price).toFixed(2)}</span>
+                      </div>
+                      <div className="gd-od-item right">
+                        <span className="gd-od-label">Executed</span>
+                        <span className="gd-od-val">{timeAgo(tx.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ════════ POSITIONS TAB ════════ */}
+        {activeTab === 'Positions' && (
+          <div className="gd-tab-panel">
+            <div className="gd-list-container" style={{ textAlign: 'center', padding: '60px 20px', color: '#888' }}>
+               <svg width="48" height="48" fill="none" stroke="#444" strokeWidth="1.5" viewBox="0 0 24 24" style={{ marginBottom: '16px' }}>
+                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+               </svg>
+               <h3 style={{ color: '#E0E0E0', fontSize: '18px', marginBottom: '8px' }}>No Open Positions</h3>
+               <p style={{ fontSize: '14px', maxWidth: '400px', margin: '0 auto' }}>
+                 You currently do not have any open intraday or F&O positions. Your delivery investments are available in the Holdings tab.
+               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ════════ WATCHLISTS TAB ════════ */}
+        {activeTab === 'Watchlists' && (
+          <div className="gd-tab-panel">
+            <div className="gd-subtabs" style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+              <button 
+                className={`gd-subtab ${activeWatchlistId === 'default-db' ? 'active' : ''}`}
+                onClick={() => setActiveWatchlistId('default-db')}
+              >
+                Synced Watchlist
+              </button>
+              
+              {customWatchlists.map(list => (
+                <button 
+                  key={list.id}
+                  className={`gd-subtab ${activeWatchlistId === list.id ? 'active' : ''}`}
+                  onClick={() => setActiveWatchlistId(list.id)}
+                >
+                  {list.name}
+                </button>
+              ))}
+
+              {isAddingWatchlist ? (
+                <form onSubmit={handleAddCustomList} style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
+                  <input 
+                    autoFocus
+                    type="text" 
+                    value={newWatchlistName}
+                    onChange={e => setNewWatchlistName(e.target.value)}
+                    placeholder="List name"
+                    style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #333', background: '#111', color: '#fff', fontSize: '14px', outline: 'none' }}
+                  />
+                  <button type="submit" style={{ background: '#00D09C', color: '#000', border: 'none', borderRadius: '4px', padding: '0 12px', fontSize: '14px', cursor: 'pointer', fontWeight: 600 }}>Create</button>
+                  <button type="button" onClick={() => setIsAddingWatchlist(false)} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: '4px', padding: '0 12px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                </form>
+              ) : (
+                <button 
+                  className="gd-subtab"
+                  style={{ border: '1px dashed #555', background: 'transparent' }}
+                  onClick={() => setIsAddingWatchlist(true)}
+                >
+                  + Add Watchlist
+                </button>
+              )}
+            </div>
+
+            <div className="gd-list-container" style={{ marginTop: '24px' }}>
+              {activeWatchlistId === 'default-db' ? (
+                watchlistItems.length === 0 ? (
+                  <div className="gd-empty">No stocks in your primary watchlist. Use the search bar to find and add stocks.</div>
+                ) : (
+                  exploreStocks.map(stock => {
+                    const isUp = stock.changePct >= 0;
+                    return (
+                      <button key={stock.symbol} className="gd-list-item" onClick={() => openChart(stock.symbol)}>
+                        <div className="gd-item-left">
+                          <SymbolLogo symbol={stock.symbol} size={40} className="gd-icon-square" />
+                          <div style={{ textAlign: 'left' }}>
+                            <div className="gd-item-title">{stock.symbol.replace('.NS', '')}</div>
+                            <div className="gd-item-subtitle">{stock.name}</div>
+                          </div>
+                        </div>
+                        <div className="gd-item-right" style={{ textAlign: 'right' }}>
+                          <div className="gd-item-val">{stock.price ? `₹${stock.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}</div>
+                          <div className={`gd-item-pl ${isUp ? 'up' : 'down'}`}>
+                            {isUp ? '+' : ''}{stock.change.toFixed(2)} ({isUp ? '+' : ''}{stock.changePct.toFixed(2)}%)
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })
+                )
+              ) : (
+                <div className="gd-empty" style={{ padding: '40px 0' }}>
+                  This custom watchlist is currently empty.
+                  <br/><span style={{ fontSize: '13px', color: '#555', marginTop: '8px', display: 'block' }}>(Feature integration pending)</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </main>
     </div>
   );
 }

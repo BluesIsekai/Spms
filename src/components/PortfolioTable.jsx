@@ -1,5 +1,6 @@
 import './PortfolioTable.css';
 import { convertToINR, formatAmount, inferCurrencyFromSymbol } from '../utils/currency';
+import SymbolLogo from './ui/SymbolLogo';
 
 function formatINR(value) {
   const num = Number(value || 0);
@@ -67,7 +68,10 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
                 onClick={() => onSelectSymbol?.(h.stock_symbol)}
               >
                 <td>
-                  <span className="symbol-badge">{h.stock_symbol}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <SymbolLogo symbol={h.stock_symbol} size={28} />
+                    <span className="symbol-badge">{h.stock_symbol}</span>
+                  </div>
                 </td>
                 <td className="align-right tabular">{quantity.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
                 <td className="align-right tabular">{formatAmount(avgBuyPrice, currency)}</td>
@@ -76,7 +80,7 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
                   {isUp ? '+' : '-'}{formatINR(Math.abs(plInInr))}
                 </td>
                 <td className={`align-right tabular ${isUp ? 'up' : 'down'}`}>
-                  {isUp ? '+' : ''}{rowPLPercent.toFixed(2)}%
+                  {isUp ? '+' : '−'}{rowPLPercent.toFixed(2)}%
                 </td>
                 <td className="align-right tabular bold">{formatINR(valueInInr)}</td>
               </tr>
@@ -107,7 +111,10 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
               onClick={() => onSelectSymbol?.(h.stock_symbol)}
             >
               <div className="portfolio-mobile-card-head">
-                <span className="symbol-badge">{h.stock_symbol}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <SymbolLogo symbol={h.stock_symbol} size={24} />
+                  <span className="symbol-badge">{h.stock_symbol}</span>
+                </div>
                 <span className={`portfolio-mobile-card-value ${isUp ? 'up' : 'down'}`}>
                   {isUp ? '+' : '-'}{formatINR(Math.abs(plInInr))}
                 </span>
@@ -129,7 +136,7 @@ export default function PortfolioTable({ holdings = [], livePrices = {}, liveQuo
                 <div>
                   <span className="portfolio-mobile-label">P&amp;L %</span>
                   <span className={`portfolio-mobile-value ${isUp ? 'up' : 'down'}`}>
-                    {isUp ? '+' : ''}{rowPLPercent.toFixed(2)}%
+                    {isUp ? '+' : '−'}{rowPLPercent.toFixed(2)}%
                   </span>
                 </div>
                 <div className="portfolio-mobile-span">

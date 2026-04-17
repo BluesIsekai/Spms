@@ -16,6 +16,7 @@ import PageHeader from '../components/ui/PageHeader';
 import Button from '../components/ui/Button';
 import DataTable from '../components/ui/DataTable';
 import Card from '../components/ui/Card';
+import SymbolLogo from '../components/ui/SymbolLogo';
 import './Pages.css';
 
 function resolveTradingSymbol(stock) {
@@ -151,7 +152,12 @@ export default function Watchlist({ onOpenChart }) {
 
     return {
       id: item.id,
-      symbol,
+      symbol: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <SymbolLogo symbol={symbol} size={28} />
+          <span className="symbol-badge" style={{ background: 'none', padding: 0 }}>{symbol}</span>
+        </div>
+      ),
       company: item.company_name || symbol.replace('.NS', ''),
       price: formatCurrency(price),
       change: `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`,
@@ -254,8 +260,13 @@ export default function Watchlist({ onOpenChart }) {
                     onClick={() => handleAdd(result)}
                   >
                     <div>
-                      <div className="search-result-title">{symbol}</div>
-                      <div className="search-result-subtitle">{result.company_name || result.shortname || result.symbol}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <SymbolLogo symbol={symbol} size={32} />
+                        <div>
+                          <div className="search-result-title">{symbol}</div>
+                          <div className="search-result-subtitle">{result.company_name || result.shortname || result.symbol}</div>
+                        </div>
+                      </div>
                     </div>
                     <span className="add-pill">Add</span>
                   </button>

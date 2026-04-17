@@ -1,0 +1,223 @@
+.gi-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: #0f0f0f;
+  color: #fff;
+  font-family: 'Roboto', -apple-system, sans-serif;
+  overflow-y: auto;
+  padding: 0 0 48px;
+}
+
+/* ── Header ── */
+.gi-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 32px 20px;
+  border-bottom: 1px solid #1e1e1e;
+  background: #0f0f0f;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.gi-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.gi-back-btn:hover {
+  background: #232323;
+  color: #fff;
+}
+
+.gi-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.gi-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.gi-subtitle {
+  font-size: 13px;
+  color: #666;
+}
+
+.gi-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(0, 208, 156, 0.08);
+  border: 1px solid rgba(0, 208, 156, 0.25);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #00d09c;
+  letter-spacing: 0.4px;
+}
+
+.gi-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00d09c;
+  animation: gi-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes gi-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── Card Grid ── */
+.gi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  padding: 28px 32px;
+}
+
+/* ── Card ── */
+.gi-card {
+  background: #141414;
+  border: 1px solid #1e1e1e;
+  border-radius: 14px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.gi-card-up:hover { border-color: rgba(0, 208, 156, 0.35); }
+.gi-card-down:hover { border-color: rgba(235, 91, 60, 0.35); }
+
+.gi-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.gi-card-flag-region {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gi-flag {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.gi-region {
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.gi-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.2px;
+}
+
+.gi-card-badge.up {
+  background: rgba(0, 208, 156, 0.12);
+  color: #00d09c;
+}
+
+.gi-card-badge.down {
+  background: rgba(235, 91, 60, 0.12);
+  color: #eb5b3c;
+}
+
+.gi-card-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.gi-card-symbol {
+  font-size: 11px;
+  color: #444;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+.gi-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #1e1e1e;
+}
+
+.gi-card-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gi-card-change {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.gi-card-change.up  { color: #00d09c; }
+.gi-card-change.down { color: #eb5b3c; }
+
+.gi-loading {
+  font-size: 14px;
+  color: #333;
+  font-weight: 400;
+  animation: gi-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes gi-shimmer {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .gi-grid { padding: 16px; gap: 12px; }
+  .gi-header { padding: 16px; }
+  .gi-title { font-size: 18px; }
+  .gi-grid { grid-template-columns: 1fr 1fr; }
+}

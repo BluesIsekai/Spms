@@ -1,5 +1,6 @@
 import './PortfolioTable.css';
 import { inferCurrencyFromSymbol } from '../utils/currency';
+import SymbolLogo from './ui/SymbolLogo';
 
 function formatINR(value) {
   const num = Number(value || 0);
@@ -54,7 +55,12 @@ export default function TransactionsTable({ transactions = [] }) {
                   {tx.transaction_type}
                 </span>
               </td>
-              <td><span className="symbol-badge">{tx.stock_symbol}</span></td>
+              <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <SymbolLogo symbol={tx.stock_symbol} size={28} />
+                  <span className="symbol-badge">{tx.stock_symbol}</span>
+                </div>
+              </td>
               <td className="align-right tabular">{Number(tx.quantity || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>
               <td className="align-right tabular">{formatByCurrency(tx.price, priceCurrency)}</td>
               <td className="align-right tabular bold">{formatINR(tx.total_amount)}</td>
@@ -82,7 +88,10 @@ export default function TransactionsTable({ transactions = [] }) {
                 <span className={`type-badge ${tx.transaction_type === 'BUY' ? 'buy' : 'sell'}`}>
                   {tx.transaction_type}
                 </span>
-                <span className="symbol-badge">{tx.stock_symbol}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <SymbolLogo symbol={tx.stock_symbol} size={24} />
+                  <span className="symbol-badge">{tx.stock_symbol}</span>
+                </div>
               </div>
 
               <div className="transaction-mobile-grid">

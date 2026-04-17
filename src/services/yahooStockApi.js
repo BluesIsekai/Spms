@@ -69,6 +69,11 @@ export async function getQuote(symbol) {
   const result = await fetchChart(symbol, '?interval=1d&range=1d');
   const m = result.meta;
 
+  const price = m.regularMarketPrice ?? 0;
+  const prevClose = m.previousClose ?? m.chartPreviousClose ?? price;
+  const calcChange = price - prevClose;
+  const calcChangePct = prevClose > 0 ? (calcChange / prevClose) * 100 : 0;
+
   return {
     symbol,
     name:        m.shortName    || m.longName      || symbol,
@@ -76,14 +81,14 @@ export async function getQuote(symbol) {
     exchange:    m.exchangeName || '',
     marketState: m.marketState  || 'CLOSED',
 
-    price:     m.regularMarketPrice           ?? 0,
-    change:    m.regularMarketChange          ?? 0,
-    changePct: m.regularMarketChangePercent   ?? 0,
+    price:     price,
+    change:    m.regularMarketChange          ?? calcChange,
+    changePct: m.regularMarketChangePercent   ?? calcChangePct,
 
     open:      m.regularMarketOpen            ?? 0,
     high:      m.regularMarketDayHigh         ?? 0,
     low:       m.regularMarketDayLow          ?? 0,
-    prevClose: m.previousClose ?? m.chartPreviousClose ?? 0,
+    prevClose: prevClose,
 
     volume:    m.regularMarketVolume          ?? 0,
     marketCap: m.marketCap                    ?? 0,
@@ -157,29 +162,62 @@ export async function getWatchlistPrices(symbols) {
 }
 
 /**
- * Search for stock symbols using Yahoo Finance.
- * Prioritises .NS / .BO equities but falls back to all equities.
+ * Search for stock symbols using Yahoo Finance autocomplete.
+ * Handles multiple response shapes returned by different Yahoo Finance endpoints.
  *
  * @param {string} query
- * @returns {Promise<Array<{ symbol, shortname, exchDisp }>>}
+ * @returns {Promise<Array<{ symbol, shortname, exchDisp, quoteType }>>}
  */
 export async function searchSymbols(query) {
   if (!query?.trim()) return [];
-  const url =
-    `${SEARCH_BASE}/v1/finance/search` +
-    `?q=${encodeURIComponent(query.trim())}` +
-    `&quotesCount=10&newsCount=0&enableFuzzyQuery=false&lang=en-US`;
 
-  const res = await fetch(url);
-  if (!res.ok) return [];
+  const q = encodeURIComponent(query.trim());
 
-  const json = await res.json();
-  const quotes = json?.finance?.result?.[0]?.quotes ?? [];
+  // Try the primary autocomplete endpoint first
+  const urls = [
+    `${SEARCH_BASE}/v1/finance/search?q=${q}&quotesCount=15&newsCount=0&enableFuzzyQuery=true&lang=en-US`,
+    `${CHART_BASE}/v1/finance/search?q=${q}&quotesCount=15&newsCount=0&enableFuzzyQuery=true&lang=en-US`,
+  ];
 
-  return quotes
-    .filter((q) => q.quoteType === 'EQUITY' && q.isYahooFinance)
-    .slice(0, 8);
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) continue;
+
+      const json = await res.json();
+
+      // Yahoo Finance returns different shapes depending on the endpoint / version
+      const quotes =
+        json?.quotes ??                          // direct array (most common)
+        json?.finance?.result?.[0]?.quotes ??    // wrapped shape
+        json?.data?.quotes ??                    // alternate wrapper
+        [];
+
+      if (!Array.isArray(quotes) || quotes.length === 0) continue;
+
+      // Accept EQUITY, ETF, INDEX, FUTURE, MUTUALFUND — anything investible
+      const ALLOWED = new Set(['EQUITY', 'ETF', 'INDEX', 'FUTURE', 'MUTUALFUND', 'CRYPTOCURRENCY']);
+      const filtered = quotes
+        .filter((q) => q?.symbol && (ALLOWED.has(q.quoteType) || q.isYahooFinance))
+        .slice(0, 10);
+
+      if (filtered.length > 0) {
+        // Boost: put .NS / .BO stocks to the top for Indian users
+        filtered.sort((a, b) => {
+          const aInd = a.symbol?.endsWith('.NS') || a.symbol?.endsWith('.BO') ? -1 : 0;
+          const bInd = b.symbol?.endsWith('.NS') || b.symbol?.endsWith('.BO') ? -1 : 0;
+          return aInd - bInd;
+        });
+        return filtered;
+      }
+    } catch (_) {
+      // try next URL
+    }
+  }
+
+  return [];
 }
+
 
 // ── Formatting utilities ─────────────────────────────────────────────────────
 
