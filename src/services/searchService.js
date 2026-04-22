@@ -41,17 +41,31 @@ export async function searchStocks(query) {
     ).slice(0, 10);
   }
 
-  // Live Supabase Autocomplete Request
-  const { data, error } = await supabase
-    .from('stocks_master')
-    .select('*')
-    .or(`symbol.ilike.%${lowerq}%,company_name.ilike.%${lowerq}%`)
-    .limit(10);
+  const searchFromCatalog = async (tableName) => {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('*')
+      .or(`symbol.ilike.%${lowerq}%,company_name.ilike.%${lowerq}%,yahoo_symbol.ilike.%${lowerq}%,sector.ilike.%${lowerq}%`)
+      .limit(10);
 
-  if (error) {
+    if (error) throw error;
+    return data || [];
+  };
+
+  try {
+    const marketCatalog = await searchFromCatalog('market_catalog');
+    if (marketCatalog.length > 0) return marketCatalog;
+  } catch (error) {
+    if (error?.code !== '42P01') {
+      console.error('Supabase market catalog search error:', error);
+      return [];
+    }
+  }
+
+  try {
+    return await searchFromCatalog('stocks_master');
+  } catch (error) {
     console.error('Supabase autocomplete search error:', error);
     return [];
   }
-
-  return data || [];
 }

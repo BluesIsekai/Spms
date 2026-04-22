@@ -1,124 +1,124 @@
 /* ── App.css ── */
 
 /* Google Fonts: Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 /* App shell */
 .app-shell {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: #121317;
-  font-family: 'Inter', system-ui, sans-serif;
-  position: relative;
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background: #0d0e12;
+    font-family: "Inter", system-ui, sans-serif;
+    position: relative;
 }
 
 .app-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-  background: #121317;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    background: #0d0e12;
 }
 
 .mobile-sidebar-toggle {
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 1105;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid rgba(60, 73, 78, 0.35);
-  background: rgba(13, 14, 18, 0.94);
-  backdrop-filter: blur(12px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 0;
-  cursor: pointer;
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1105;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(60, 73, 78, 0.35);
+    background: rgba(13, 14, 18, 0.94);
+    backdrop-filter: blur(12px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.28);
 }
 
 .mobile-sidebar-toggle span {
-  display: block;
-  width: 18px;
-  height: 2px;
-  border-radius: 999px;
-  background: #e3e2e8;
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: #e3e2e8;
 }
 
 .app-sidebar-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1090;
-  border: none;
-  padding: 0;
-  margin: 0;
-  background: rgba(3, 6, 12, 0.64);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(3, 6, 12, 0.64);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
 }
 
 .app-sidebar-backdrop.visible {
-  opacity: 1;
-  pointer-events: auto;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Placeholder page */
 .placeholder-page {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #121317;
-  min-height: calc(100vh - 60px);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #121317;
+    min-height: calc(100vh - 60px);
 }
 
 .placeholder-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 40px;
-  text-align: center;
-  background: #1a1b20;
-  border-radius: 12px;
-  border: 1px solid rgba(60, 73, 78, 0.2);
-  max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+    background: #1a1b20;
+    border-radius: 12px;
+    border: 1px solid rgba(60, 73, 78, 0.2);
+    max-width: 360px;
 }
 
 .placeholder-icon {
-  width: 80px;
-  height: 80px;
-  background: rgba(60, 73, 78, 0.15);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 80px;
+    height: 80px;
+    background: rgba(60, 73, 78, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .placeholder-inner h2 {
-  font-size: 22px;
-  font-weight: 700;
-  color: #e3e2e8;
-  margin: 0;
-  letter-spacing: -0.3px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #e3e2e8;
+    margin: 0;
+    letter-spacing: -0.3px;
 }
 
 .placeholder-inner p {
-  font-size: 14px;
-  color: #5a6872;
-  margin: 0;
-  line-height: 1.6;
+    font-size: 14px;
+    color: #5a6872;
+    margin: 0;
+    line-height: 1.6;
 }
 
 @media (max-width: 1023px) {
-  .mobile-sidebar-toggle {
-    display: inline-flex;
-  }
+    .mobile-sidebar-toggle {
+        display: inline-flex;
+    }
 }

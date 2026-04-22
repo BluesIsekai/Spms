@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { searchSymbols } from '../services/yahooStockApi';
+import { useAuth } from '../hooks/useAuth.jsx';
+import { recordRecentView } from '../services/marketFeatureService';
 import { getCompanyLogo } from '../utils/logos';
 import SymbolLogo from '../components/ui/SymbolLogo';
 import './FnODashboard.css';
@@ -89,6 +91,7 @@ function CommoditySimpleCard({ item, openChart }) {
 
 export default function FnODashboard({ appPrices = {} }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Top Bar State
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,7 +178,13 @@ export default function FnODashboard({ appPrices = {} }) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const handleOpenChart = (symbol) => navigate(`/chart/${encodeURIComponent(symbol)}`);
+  const handleOpenChart = (symbol) => {
+    void recordRecentView(user?.id, symbol, {
+      companyName: symbol.replace('.NS', '').replace('=F', ''),
+      sourcePage: 'fno',
+    });
+    navigate(`/chart/${encodeURIComponent(symbol)}`);
+  };
 
   return (
     <div className="fno-dashboard-page groww-dashboard">

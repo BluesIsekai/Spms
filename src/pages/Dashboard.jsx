@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { getFxRatesToINR, getHistoricalData, searchSymbols } from '../services/yahooStockApi';
+import { fetchRecentViews, recordRecentView } from '../services/marketFeatureService';
 import {
   fetchHoldings,
   fetchTransactions,
@@ -122,6 +123,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
   const [watchlistItems, setWatchlistItems] = useState([]);
   const [fxRates, setFxRates]           = useState({});
   const [prevCloseBySymbol, setPrevCloseBySymbol] = useState({});
+  const [recentViewRows, setRecentViewRows] = useState([]);
 
   // ── Local Storage Custom Watchlists ───────────────────────────────────────
   useEffect(() => {
@@ -195,6 +197,20 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
       fetchWatchlist(user.id).then(wl => setWatchlistItems(wl?.length ? wl : DEFAULT_WATCHLIST)).catch(() => {})
     );
     return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !SUPABASE_CONFIGURED) {
+      setRecentViewRows([]);
+      return;
+    }
+
+    fetchRecentViews(user.id, {
+      limit: 7,
+      assetTypes: ['EQUITY', 'ETF', 'INDEX', 'FNO', 'COMMODITY', 'CRYPTO'],
+    })
+      .then((rows) => setRecentViewRows(rows || []))
+      .catch(() => setRecentViewRows([]));
   }, [user?.id]);
 
   // ── Stock price polling ───────────────────────────────────────────────────
@@ -319,7 +335,25 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
   const topGainersSlice = useMemo(() => topGainers.slice(0, 5), [topGainers]);
   const topLosersSlice = useMemo(() => topLosers.slice(0, 5), [topLosers]);
 
-  const recentlyViewed = useMemo(() => baseExtended.slice(0, 7), [baseExtended]);
+  const recentlyViewed = useMemo(() => {
+    if (!recentViewRows.length) return baseExtended.slice(0, 7);
+
+    const chartableRows = recentViewRows.filter((row) => row.asset_type !== 'MUTUAL_FUND');
+    if (!chartableRows.length) return baseExtended.slice(0, 7);
+
+    return chartableRows.map((row) => {
+      const symbol = row.yahoo_symbol || row.symbol;
+      const quote = mergedPrices[symbol] || {};
+      return {
+        symbol,
+        name: row.company_name || symbol.replace('.NS', '').replace('^', ''),
+        price: quote.price || 0,
+        change: quote.change || 0,
+        changePct: quote.changePct || 0,
+        currency: quote.currency || 'INR',
+      };
+    });
+  }, [recentViewRows, baseExtended, mergedPrices]);
   const mostBought = useMemo(() => getSlice(3), [baseExtended]);
   const mostTradedMtf = useMemo(() => getSlice(1), [baseExtended]);
   const topIntraday = useMemo(() => getSlice(2), [baseExtended]);
@@ -355,7 +389,13 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
     { label: 'FTSE 100',   symbol: '^FTSE',         data: mergedPrices['^FTSE'] },
   ];
 
-  const openChart = (symbol) => navigate(`/chart/${symbol}`);
+  const openChart = (symbol) => {
+    void recordRecentView(user?.id, symbol, {
+      companyName: symbol.replace('.NS', '').replace('^', ''),
+      sourcePage: 'dashboard',
+    });
+    navigate(`/chart/${encodeURIComponent(symbol)}`);
+  };
 
   return (
     <div className="groww-dashboard">

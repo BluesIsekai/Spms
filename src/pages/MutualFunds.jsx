@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { searchSymbols } from '../services/yahooStockApi';
 import { useStockPolling } from '../hooks/useStockPolling';
 import { useAuth } from '../hooks/useAuth.jsx';
 import { recordTransaction } from '../services/portfolioService';
+import { fetchMutualFundSips, fetchRecentViews, recordRecentView, upsertMutualFundSip } from '../services/marketFeatureService';
 import SymbolLogo from '../components/ui/SymbolLogo';
 import './MutualFunds.css';
 import './Dashboard.css';
@@ -138,12 +139,12 @@ function ReturnBadge({ value }) {
   );
 }
 
-function FundCard({ fund, details }) {
+function FundCard({ fund, details, onStartSip }) {
   const d = details;
   const ini = initials(fund.schemeName);
   const name = shortName(fund.schemeName);
   return (
-    <button className="gd-stock-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', textAlign: 'left', minWidth: '160px' }}>
+    <button className="gd-stock-card" onClick={() => onStartSip?.(fund)} style={{ padding: '16px', display: 'flex', flexDirection: 'column', textAlign: 'left', minWidth: '160px' }}>
       <div className="gd-stock-icon" style={{ background: 'linear-gradient(135deg, #1e3a5f, #0d4f3c)', color: '#7dd3c8', border: 'none' }}>
         {ini}
       </div>
@@ -245,7 +246,7 @@ export default function MutualFunds({ appPrices = {} }) {
   const [allFunds, setAllFunds]       = useState([]);   // all Direct-Growth equity funds
   const [fundsLoading, setFundsLoading] = useState(true);
   const [popularFunds, setPopularFunds] = useState([]);  // 5 curated popular funds
-  const [recentFunds, setRecentFunds]   = useState([]);  // 3 funds used in Recently Viewed
+  const [recentFundRows, setRecentFundRows] = useState([]);  // DB-backed recently viewed funds
 
   // Filters
   const [activeFilters, setActiveFilters] = useState([]);
@@ -260,18 +261,39 @@ export default function MutualFunds({ appPrices = {} }) {
   // Load SIPs
   useEffect(() => {
     if (user?.id) {
-      try {
-        const stored = localStorage.getItem(`spms_user_sips_${user.id}`);
-        if (stored) setUserSips(JSON.parse(stored));
-      } catch(e) {}
+      fetchMutualFundSips(user.id)
+        .then((rows) => setUserSips(rows || []))
+        .catch(() => {
+          try {
+            const stored = localStorage.getItem(`spms_user_sips_${user.id}`);
+            if (stored) setUserSips(JSON.parse(stored));
+          } catch(e) {}
+        });
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setRecentFundRows([]);
+      return;
+    }
+
+    fetchRecentViews(user.id, { limit: 6, assetTypes: ['MUTUAL_FUND'] })
+      .then((rows) => setRecentFundRows(rows || []))
+      .catch(() => setRecentFundRows([]));
+  }, [user?.id]);
+
   const handleStartSipClick = useCallback((fund) => {
+    void recordRecentView(user?.id, fund.schemeCode, {
+      yahooSymbol: fund.schemeCode,
+      companyName: fund.schemeName,
+      assetType: 'MUTUAL_FUND',
+      sourcePage: 'mutual-funds',
+    });
     setSipModal({ isOpen: true, fund });
     setSipAmount('1000');
     setSipDate('5');
-  }, []);
+  }, [user?.id]);
 
   const handleConfirmSip = async () => {
     if (!user?.id || !sipModal.fund || !sipAmount) return;
@@ -295,8 +317,6 @@ export default function MutualFunds({ appPrices = {} }) {
       };
 
       const updatedSips = [...userSips, newSip];
-      setUserSips(updatedSips);
-      localStorage.setItem(`spms_user_sips_${user.id}`, JSON.stringify(updatedSips));
 
       // Charge first installment
       const nav = fundDetails[sipModal.fund.schemeCode]?.nav || 10;
@@ -310,6 +330,25 @@ export default function MutualFunds({ appPrices = {} }) {
         price: nav,
         companyName: sipModal.fund.schemeName
       });
+
+      const savedSip = await upsertMutualFundSip({
+        userId: user.id,
+        schemeCode: sipModal.fund.schemeCode,
+        schemeName: sipModal.fund.schemeName,
+        category: sipModal.fund.category,
+        amount: amountNum,
+        deductionDay: sipDate,
+        status: 'Active',
+        nextPaymentAt: new Date().toISOString(),
+      });
+
+      if (savedSip) {
+        const refreshedSips = await fetchMutualFundSips(user.id);
+        setUserSips(refreshedSips || []);
+      } else {
+        setUserSips(updatedSips);
+        localStorage.setItem(`spms_user_sips_${user.id}`, JSON.stringify(updatedSips));
+      }
 
       setSipModal({ isOpen: false, fund: null });
       setActiveTab('SIPs');
@@ -380,10 +419,6 @@ export default function MutualFunds({ appPrices = {} }) {
             .slice(0, 6);
           setPopularFunds(pop);
 
-          // Recently viewed: pick 6 from different categories
-          const cats = ['Small Cap', 'Mid Cap', 'Hybrid', 'Large Cap', 'Flexi Cap', 'Index Fund'];
-          const rec = cats.map(cat => filtered.find(f => f.category === cat)).filter(Boolean);
-          setRecentFunds(rec);
         }
       } finally {
         if (!cancelled) setFundsLoading(false);
@@ -432,6 +467,17 @@ export default function MutualFunds({ appPrices = {} }) {
     });
   });
   const visibleFunds = filteredFunds.slice(0, visibleCount);
+
+  const recentFunds = useMemo(() => {
+    if (recentFundRows.length > 0) {
+      return recentFundRows
+        .map((row) => allFunds.find((fund) => fund.schemeCode === String(row.symbol) || fund.schemeCode === String(row.yahoo_symbol)))
+        .filter(Boolean);
+    }
+
+    const cats = ['Small Cap', 'Mid Cap', 'Hybrid', 'Large Cap', 'Flexi Cap', 'Index Fund'];
+    return cats.map((cat) => allFunds.find((fund) => fund.category === cat)).filter(Boolean);
+  }, [recentFundRows, allFunds]);
 
   const visKey  = visibleFunds.map(f => f.schemeCode).join(',');
   const popKey  = popularFunds.map(f => f.schemeCode).join(',');
@@ -562,7 +608,7 @@ export default function MutualFunds({ appPrices = {} }) {
                 {fundsLoading || !popularFunds.length
                   ? Array.from({ length: 6 }).map((_, i) => <FundCardSkeleton key={i} />)
                   : popularFunds.map(f => (
-                      <FundCard key={f.schemeCode} fund={f} details={fundDetails[f.schemeCode]} />
+                      <FundCard key={f.schemeCode} fund={f} details={fundDetails[f.schemeCode]} onStartSip={handleStartSipClick} />
                     ))
                 }
               </div>
@@ -593,7 +639,7 @@ export default function MutualFunds({ appPrices = {} }) {
               <div className="gd-stock-grid">
                 {recentFunds.length > 0
                   ? recentFunds.map(f => (
-                      <FundCard key={f.schemeCode} fund={f} details={fundDetails[f.schemeCode]} />
+                      <FundCard key={f.schemeCode} fund={f} details={fundDetails[f.schemeCode]} onStartSip={handleStartSipClick} />
                     ))
                   : <div className="gd-empty" style={{ padding: '24px', width: '100%' }}>Browse funds to see recently viewed.</div>
                 }
