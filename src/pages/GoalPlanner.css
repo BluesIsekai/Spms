@@ -1,0 +1,384 @@
+/* ─── GoalPlanner.css ────────────────────────────────────────────────────── */
+
+.gp-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.gp-hero {
+  text-align: center;
+  padding: 32px 0 20px;
+}
+
+.gp-hero-icon { font-size: 48px; margin-bottom: 12px; }
+
+.gp-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #FFD740, #FF6D00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gp-subtitle {
+  font-size: 15px;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.gp-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding-bottom: 0;
+}
+
+.gp-tab {
+  background: none;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  color: #888;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: -1px;
+}
+
+.gp-tab:hover  { color: #fff; }
+.gp-tab.active { color: #FFD740; border-bottom-color: #FFD740; }
+
+.gp-badge {
+  background: #FFD740;
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 1px 6px;
+}
+
+/* ── Create Layout ────────────────────────────────────────────────────────── */
+.gp-create-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .gp-create-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Input Panel ──────────────────────────────────────────────────────────── */
+.gp-input-panel {
+  background: #141414;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.gp-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.gp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.gp-preset-btn {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #2a2a2a;
+  background: transparent;
+  color: #888;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.gp-preset-btn:hover  { border-color: #FFD740; color: #FFD740; }
+.gp-preset-btn.active { background: #FFD740; border-color: #FFD740; color: #000; }
+
+.gp-fields { display: grid; gap: 14px; }
+
+.gp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gp-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #666;
+}
+
+.gp-input {
+  background: #1c1c1c;
+  border: 1.5px solid #2a2a2a;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.gp-input:focus { border-color: #FFD740; }
+
+/* ── Risk tabs ────────────────────────────────────────────────────────────── */
+.gp-risk-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.gp-risk-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1.5px solid #2a2a2a;
+  background: transparent;
+  color: #888;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.gp-risk-btn:hover { border-color: #555; color: #ccc; }
+.gp-risk-btn.active { background: rgba(255,255,255,0.06); }
+
+.gp-risk-ret {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* ── Save button ──────────────────────────────────────────────────────────── */
+.gp-save-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FFD740, #FF6D00);
+  border: none;
+  color: #000;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gp-save-btn:hover   { opacity: 0.9; transform: translateY(-1px); }
+.gp-save-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Plan Panel ───────────────────────────────────────────────────────────── */
+.gp-plan-panel { position: sticky; top: 20px; }
+
+.gp-plan-card {
+  background: #141414;
+  border: 1px solid rgba(255,215,64,0.15);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.gp-plan-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 20px;
+}
+
+.gp-sip-hero {
+  text-align: center;
+  padding: 20px 0;
+  background: linear-gradient(135deg, rgba(255,215,64,0.08), rgba(255,109,0,0.05));
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+.gp-sip-label { font-size: 12px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.gp-sip-amount { font-size: 36px; font-weight: 800; color: #FFD740; }
+.gp-sip-sub { font-size: 12px; color: #666; margin-top: 6px; }
+
+.gp-plan-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.gp-pm-item {
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.gp-pm-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.gp-pm-val   { font-size: 14px; font-weight: 700; color: #fff; }
+
+/* ── Projection chart ─────────────────────────────────────────────────────── */
+.gp-chart-wrap { margin-bottom: 20px; }
+.gp-chart-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.gp-chart-svg { border-radius: 8px; background: rgba(255,255,255,0.02); }
+.gp-chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: #555; margin-top: 4px; }
+
+/* ── Allocation ───────────────────────────────────────────────────────────── */
+.gp-alloc-section { }
+
+.gp-alloc-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 8px;
+  gap: 2px;
+}
+
+.gp-alloc-seg { height: 100%; transition: flex 0.4s ease; }
+.gp-alloc-seg.equity { background: #00C853; border-radius: 8px 0 0 8px; }
+.gp-alloc-seg.debt   { background: #2196F3; }
+.gp-alloc-seg.gold   { background: #FFD740; border-radius: 0 8px 8px 0; }
+
+.gp-alloc-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #888;
+}
+
+.gp-alloc-legend span { display: flex; align-items: center; gap: 5px; }
+.gp-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.gp-dot.equity { background: #00C853; }
+.gp-dot.debt   { background: #2196F3; }
+.gp-dot.gold   { background: #FFD740; }
+
+/* ── My Goals List ────────────────────────────────────────────────────────── */
+.gp-goals-list { display: grid; gap: 16px; }
+
+.gp-goal-card {
+  background: #141414;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px;
+  padding: 22px 24px;
+  transition: border-color 0.2s;
+}
+
+.gp-goal-card:hover { border-color: rgba(255,215,64,0.2); }
+
+.gp-goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.gp-goal-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.gp-goal-meta { font-size: 12px; color: #666; }
+
+.gp-delete-btn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.2s;
+}
+
+.gp-delete-btn:hover { color: #FF5252; }
+
+.gp-goal-amounts {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.gp-goal-amounts span:first-child { color: #FFD740; font-weight: 700; }
+
+.gp-progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.gp-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.gp-goal-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 14px;
+}
+
+.gp-goal-pct  { color: #FFD740; font-weight: 600; }
+.gp-goal-left { color: #666; }
+
+.gp-mark-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0,208,156,0.1);
+  border: 1px solid rgba(0,208,156,0.25);
+  color: #00D09C;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+
+.gp-mark-btn:hover { background: rgba(0,208,156,0.2); }
+
+.gp-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #555;
+  font-size: 16px;
+}

@@ -1,0 +1,219 @@
+/* ── PortfolioHealth.css ─────────────────────────────────────────────────── */
+
+/* ── Banner container ────────────────────────────────────────────────────── */
+.ph-banner {
+  display: flex;
+  gap: 0;
+  background: linear-gradient(135deg, #111 0%, #161616 60%, #0f1a16 100%);
+  border: 1px solid rgba(0, 208, 156, 0.15);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle glow background */
+.ph-banner::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(0,208,156,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── Gauge (left section) ────────────────────────────────────────────────── */
+.ph-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-right: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ph-gauge-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+}
+
+/* ── Score breakdown (middle) ────────────────────────────────────────────── */
+.ph-breakdown {
+  flex: 1;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ph-bd-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+  margin-bottom: 3px;
+}
+
+.ph-bd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ph-bd-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 155px;
+  flex-shrink: 0;
+}
+
+.ph-bd-icon { font-size: 14px; flex-shrink: 0; }
+
+.ph-bd-name { font-size: 12px; font-weight: 600; color: #ccc; line-height: 1.2; }
+.ph-bd-hint { font-size: 10px; color: #555; margin-top: 1px; line-height: 1.2; }
+
+.ph-bd-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.ph-bd-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ph-bd-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ph-bd-score {
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: right;
+}
+.ph-bd-max { font-size: 10px; color: #444; font-weight: 400; }
+
+/* ── Volatility section (right) ──────────────────────────────────────────── */
+.ph-volatility {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 20px;
+  width: 210px;
+  flex-shrink: 0;
+}
+
+.ph-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ph-donut-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+}
+
+.ph-donut-legend {
+  display: flex;
+  gap: 10px;
+}
+
+.ph-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.ph-leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ph-leg-label { color: #666; }
+.ph-leg-count { font-weight: 700; color: #ccc; }
+
+/* Per-stock volatility chips */
+.ph-vol-stocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ph-vol-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 10px;
+}
+
+.ph-vol-sym    { font-weight: 700; }
+.ph-vol-label  { color: #555; font-size: 9px; }
+.ph-vol-change { font-weight: 600; font-size: 9px; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .ph-banner {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .ph-gauge-wrap {
+    padding-right: 0;
+    padding-bottom: 16px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .ph-breakdown {
+    padding: 0 0 16px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .ph-volatility {
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .ph-donut-wrap {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .ph-bd-left  { width: 120px; }
+  .ph-bd-name  { font-size: 11px; }
+  .ph-bd-hint  { display: none; }
+}

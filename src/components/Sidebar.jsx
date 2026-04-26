@@ -29,8 +29,38 @@ const ASSET_NAV = [
         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
       </svg>
     ),
-  }
+  },
+  {
+    id: 'what_if',
+    label: 'What-If',
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'goals',
+    label: 'Goals',
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
+    ),
+  },
+  {
+    id: 'trend',
+    label: 'Trend Analysis',
+    icon: (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        <circle cx="22" cy="12" r="1.5" fill="currentColor"/>
+      </svg>
+    ),
+  },
 ];
+
 
 export default function Sidebar({
   activePage,
@@ -84,13 +114,13 @@ export default function Sidebar({
         {ASSET_NAV.map((nav) => (
           <button
             key={nav.id}
-            className={`nav-item${(activePage === nav.id || (nav.id === 'dashboard' && activePage !== 'fno' && activePage !== 'mutual_funds' && activePage !== 'settings')) ? ' active' : ''}`}
+            className={`nav-item${activePage === nav.id ? ' active' : ''}`}
             onClick={() => onNavigate?.(nav.id)}
             title={collapsed ? nav.label : undefined}
           >
             <span className="nav-icon">{nav.icon}</span>
             {!collapsed && <span className="nav-label">{nav.label}</span>}
-            {(activePage === nav.id || (nav.id === 'dashboard' && activePage !== 'fno' && activePage !== 'mutual_funds' && activePage !== 'settings')) && <span className="nav-active-bar" />}
+            {activePage === nav.id && <span className="nav-active-bar" />}
           </button>
         ))}
 

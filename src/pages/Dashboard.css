@@ -5,8 +5,8 @@
 .groww-dashboard {
     display: flex;
     flex-direction: column;
-    flex: 1;
-    min-height: 0;
+    height: 100vh;
+    min-height: 100vh;
     overflow: hidden;
     background: #0d0e12; /* Match app shell + sidebar theme */
     font-family:

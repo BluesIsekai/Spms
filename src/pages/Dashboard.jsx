@@ -17,6 +17,11 @@ import { supabase } from '../services/supabaseClient';
 import { convertToINR, inferCurrencyFromSymbol } from '../utils/currency';
 import { getCompanyLogo } from '../utils/logos';
 import SymbolLogo from '../components/ui/SymbolLogo';
+import RiskHeatmap from '../components/RiskHeatmap';
+import { generatePortfolioSuggestions, actionColor } from '../utils/aiSuggestions';
+import VoiceAssistant from '../components/VoiceAssistant';
+import RebalanceSuggestions from '../components/RebalanceSuggestions';
+import PortfolioHealth from '../components/PortfolioHealth';
 import './Dashboard.css';
 
 const DEFAULT_BALANCE = 100000;
@@ -88,6 +93,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
   const [activeTab, setActiveTab] = useState('Explore'); // 'Explore', 'Holdings', 'Positions', 'Orders', 'Watchlists'
   const [orderSubTab, setOrderSubTab] = useState('All'); // 'All', 'Completed', 'Pending', 'Cancelled'
   const [topMoversTab, setTopMoversTab] = useState('Gainers'); // 'Gainers', 'Losers'
+  const [holdingsSubTab, setHoldingsSubTab] = useState('list'); // 'list' | 'ai' | 'heatmap'
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -647,55 +653,199 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
                  </div>
               </div>
             </div>
+            {/* ── Portfolio Health Banner ── */}
+            {holdings.length > 0 && (
+              <PortfolioHealth holdings={holdings} prices={mergedPrices} />
+            )}
 
-            {/* Holdings List */}
-            <div className="gd-list-container">
-              {holdings.length === 0 ? (
-                <div className="gd-empty">No delivery holdings yet. Start investing!</div>
-              ) : (
-                <>
-                  <div className="gd-hr-header">
-                     <div className="gd-hr-col flex-2 left">Stock Name</div>
-                     <div className="gd-hr-col right">Market Price (1D%)</div>
-                     <div className="gd-hr-col right">Returns (%)</div>
-                     <div className="gd-hr-col right">Current (Invested)</div>
+            {/* ── Holdings Sub-Tabs ── */}
+            <div className="gd-subtabs" style={{ marginBottom: '20px' }}>
+              {[
+                { id: 'list',      label: '📋 Holdings' },
+                { id: 'ai',        label: '🤖 AI Insights' },
+                { id: 'heatmap',   label: '🌡️ Risk Heatmap' },
+                { id: 'rebalance', label: '⚖️ Rebalance' },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  id={`holdings-subtab-${t.id}`}
+                  className={`gd-subtab ${holdingsSubTab === t.id ? 'active' : ''}`}
+                  onClick={() => setHoldingsSubTab(t.id)}
+                >{t.label}</button>
+              ))}
+            </div>
+
+            {/* ── Holdings List ── */}
+            {holdingsSubTab === 'list' && (
+              <div className="gd-list-container">
+                {holdings.length === 0 ? (
+                  <div className="gd-empty">No delivery holdings yet. Start investing!</div>
+                ) : (
+                  <>
+                    <div className="gd-hr-header">
+                       <div className="gd-hr-col flex-2 left">Stock Name</div>
+                       <div className="gd-hr-col right">Market Price (1D%)</div>
+                       <div className="gd-hr-col right">Returns (%)</div>
+                       <div className="gd-hr-col right">Current (Invested)</div>
+                    </div>
+                    {holdings.map(h => {
+                      const quote = mergedPrices[h.stock_symbol];
+                      const currentPrice = quote?.price ?? Number(h.average_buy_price);
+                      const invested = Number(h.quantity) * Number(h.average_buy_price);
+                      const currentVal = Number(h.quantity) * currentPrice;
+                      const pl = currentVal - invested;
+                      const plPct = invested > 0 ? (pl / invested) * 100 : 0;
+                      const isUp = pl >= 0;
+                      const todayPct = quote?.changePct || 0;
+                      const isDayUp = todayPct >= 0;
+                      return (
+                        <button key={h.stock_symbol} className="gd-holdings-row" onClick={() => openChart(h.stock_symbol)}>
+                           <div className="gd-hr-col flex-2 left">
+                              <span className="gd-hr-title">{h.stock_symbol.replace('.NS', '')}</span>
+                              <span className="gd-hr-subtitle">{h.quantity} shares</span>
+                           </div>
+                           <div className="gd-hr-col right">
+                              <span className="gd-hr-val">{isBalanceHidden ? '••••••' : `₹${currentPrice.toFixed(2)}`}</span>
+                              <span className={`gd-hr-sub ${isDayUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `(${isDayUp ? '+' : '−'}${Math.abs(todayPct).toFixed(2)}%)`}</span>
+                           </div>
+                           <div className="gd-hr-col right">
+                              <span className={`gd-hr-val ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}${Math.abs(plPct).toFixed(2)}%`}</span>
+                              <span className={`gd-hr-sub ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}₹${Math.abs(pl).toFixed(2)}`}</span>
+                           </div>
+                           <div className="gd-hr-col right">
+                              <span className="gd-hr-val current">{isBalanceHidden ? '••••••' : `₹${currentVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}</span>
+                              <span className="gd-hr-sub invested">{isBalanceHidden ? '••••••' : `(₹${invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })})`}</span>
+                           </div>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ── AI Suggestions ── */}
+            {holdingsSubTab === 'ai' && (() => {
+              const suggestions = generatePortfolioSuggestions(holdings, mergedPrices, fxRates, convertToINR, inferCurrencyFromSymbol);
+              if (!suggestions.length) return <div className="gd-empty">Add holdings to see AI insights.</div>;
+              return (
+                <div style={{ display: 'grid', gap: '14px' }}>
+                  {/* How it works header */}
+                  <div style={{ background: 'rgba(0,208,156,0.06)', border: '1px solid rgba(0,208,156,0.15)', borderRadius: '12px', padding: '12px 16px', fontSize: '12px', color: '#888', lineHeight: 1.6 }}>
+                    <span style={{ color: '#00D09C', fontWeight: 700 }}>🤖 How AI Insights work: </span>
+                    Signals are calculated from your <strong style={{ color: '#ccc' }}>real portfolio data</strong> — overall P&L from your buy price (primary signal), today's market momentum (secondary), and portfolio concentration (risk). <strong style={{ color: '#FFD740' }}>Nothing is random.</strong>
                   </div>
-                  {holdings.map(h => {
-                    const quote = mergedPrices[h.stock_symbol];
-                    const currentPrice = quote?.price ?? Number(h.average_buy_price);
-                    const invested = Number(h.quantity) * Number(h.average_buy_price);
-                    const currentVal = Number(h.quantity) * currentPrice;
-                    const pl = currentVal - invested;
-                    const plPct = invested > 0 ? (pl / invested) * 100 : 0;
-                    const isUp = pl >= 0;
 
-                    const todayPct = quote?.changePct || 0;
-                    const isDayUp = todayPct >= 0;
-
+                  {suggestions.map(s => {
+                    const livePrice = mergedPrices[s.stock_symbol]?.price || Number(s.average_buy_price);
+                    const sg = s.suggestion;
                     return (
-                      <button key={h.stock_symbol} className="gd-holdings-row" onClick={() => openChart(h.stock_symbol)}>
-                         <div className="gd-hr-col flex-2 left">
-                            <span className="gd-hr-title">{h.stock_symbol.replace('.NS', '')}</span>
-                            <span className="gd-hr-subtitle">{h.quantity} shares</span>
-                         </div>
-                         <div className="gd-hr-col right">
-                            <span className="gd-hr-val">{isBalanceHidden ? '••••••' : `₹${currentPrice.toFixed(2)}`}</span>
-                            <span className={`gd-hr-sub ${isDayUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `(${isDayUp ? '+' : '−'}${Math.abs(todayPct).toFixed(2)}%)`}</span>
-                         </div>
-                         <div className="gd-hr-col right">
-                            <span className={`gd-hr-val ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}${Math.abs(plPct).toFixed(2)}%`}</span>
-                            <span className={`gd-hr-sub ${isUp ? 'up' : 'down'}`}>{isBalanceHidden ? '••••••' : `${isUp ? '+' : '−'}₹${Math.abs(pl).toFixed(2)}`}</span>
-                         </div>
-                         <div className="gd-hr-col right">
-                            <span className="gd-hr-val current">{isBalanceHidden ? '••••••' : `₹${currentVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}</span>
-                            <span className="gd-hr-sub invested">{isBalanceHidden ? '••••••' : `(₹${invested.toLocaleString('en-IN', { maximumFractionDigits: 0 })})`}</span>
-                         </div>
-                      </button>
+                      <div key={s.stock_symbol} style={{
+                        background: '#141414',
+                        border: `1px solid ${sg.color}33`,
+                        borderLeft: `4px solid ${sg.color}`,
+                        borderRadius: '14px',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                      }}>
+                        {/* Top row: stock name + signal */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>
+                              {s.stock_symbol.replace('.NS', '').replace('.BO', '')}
+                              <span style={{ fontSize: '12px', fontWeight: 400, color: '#666', marginLeft: 8 }}>{s.quantity} shares</span>
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#555', marginTop: 3 }}>
+                              Bought @ ₹{Number(s.average_buy_price).toFixed(2)} · Now ₹{livePrice.toFixed(2)}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 16 }}>
+                            <div style={{ fontSize: '17px', fontWeight: 800, color: sg.color }}>{sg.label}</div>
+                            <div style={{ fontSize: '11px', color: '#555', marginTop: 2 }}>
+                              Signal score: <span style={{ color: sg.color, fontWeight: 700 }}>{sg.score?.toFixed(0) ?? sg.confidence.toFixed(0)}/100</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Data chips: shows the actual values used */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{
+                            fontSize: '12px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                            background: sg.plPct >= 0 ? 'rgba(0,200,83,0.12)' : 'rgba(255,23,68,0.12)',
+                            color: sg.plPct >= 0 ? '#00C853' : '#FF5252',
+                            border: `1px solid ${sg.plPct >= 0 ? 'rgba(0,200,83,0.25)' : 'rgba(255,23,68,0.2)'}`,
+                          }}>
+                            Overall P&L: {sg.plPct >= 0 ? '+' : ''}{sg.plPct?.toFixed(2)}%
+                          </span>
+                          <span style={{
+                            fontSize: '12px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                            background: sg.changePct >= 0 ? 'rgba(0,200,83,0.08)' : 'rgba(255,23,68,0.08)',
+                            color: sg.changePct >= 0 ? '#69F0AE' : '#FF8A80',
+                            border: `1px solid ${sg.changePct >= 0 ? 'rgba(0,200,83,0.15)' : 'rgba(255,23,68,0.15)'}`,
+                          }}>
+                            Today: {sg.changePct >= 0 ? '+' : ''}{sg.changePct?.toFixed(2)}%
+                          </span>
+                          <span style={{
+                            fontSize: '12px', fontWeight: 600, padding: '3px 10px', borderRadius: '20px',
+                            background: 'rgba(255,255,255,0.05)', color: '#aaa', border: '1px solid rgba(255,255,255,0.1)'
+                          }}>
+                            Weight: {sg.weightPct?.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        {/* Signal score bar */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#444', marginBottom: '4px' }}>
+                            <span>SELL</span><span>BOOK</span><span>HOLD</span><span>BUY</span><span>STRONG BUY</span>
+                          </div>
+                          <div style={{ height: 6, background: '#1e1e1e', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                            <div style={{ height: '100%', width: `${sg.score ?? sg.confidence}%`, background: `linear-gradient(to right, #FF1744, #FF6D00 28%, #FFD740 44%, #00E676 60%, #00C853)`, borderRadius: 4, transition: 'width 0.6s ease' }} />
+                            <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${sg.score ?? sg.confidence}%`, width: 2, background: '#fff', transform: 'translateX(-50%)' }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#333', marginTop: '2px' }}>
+                            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+                          </div>
+                        </div>
+
+                        {/* Reasoning */}
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 8 }}>
+                          <div style={{ fontSize: '11px', color: '#555', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Why this signal?</div>
+                          <ul style={{ margin: 0, padding: '0 0 0 14px', listStyle: 'disc' }}>
+                            {sg.reasons.map((r, i) => (
+                              <li key={i} style={{ fontSize: '12px', color: '#aaa', marginBottom: 3, lineHeight: 1.5 }}>{r}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
                     );
                   })}
-                </>
-              )}
-            </div>
+
+                  <div style={{ fontSize: '11px', color: '#444', textAlign: 'center', padding: '8px 0' }}>
+                    ⚠️ AI signals are rule-based analysis, not financial advice. Always do your own research before investing.
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Risk Heatmap ── */}
+            {holdingsSubTab === 'heatmap' && (
+              <RiskHeatmap
+                holdings={holdings}
+                prices={mergedPrices}
+                totalValue={portfolioMetrics.portfolioValue}
+              />
+            )}
+
+            {/* ── Auto Rebalance ── */}
+            {holdingsSubTab === 'rebalance' && (
+              <RebalanceSuggestions
+                holdings={holdings}
+                prices={mergedPrices}
+                totalValue={portfolioMetrics.portfolioValue}
+              />
+            )}
           </div>
         )}
 
@@ -851,6 +1001,7 @@ export default function Dashboard({ appPrices = {}, lastUpdated, connected, onRe
         )}
 
       </main>
+      <VoiceAssistant holdings={holdings} prices={mergedPrices} />
     </div>
   );
 }

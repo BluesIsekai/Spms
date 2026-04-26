@@ -1,0 +1,145 @@
+/* ─── RiskHeatmap.css ──────────────────────────────────────────────────────── */
+
+.rhm-wrapper {
+  margin-top: 28px;
+}
+
+.rhm-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
+.rhm-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.rhm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rhm-legend-note {
+  margin-left: auto;
+  font-size: 11px;
+  color: #555;
+  font-style: italic;
+}
+
+.rhm-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.rhm-tile {
+  position: relative;
+  border-radius: 14px;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: visible;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.rhm-tile:hover {
+  transform: scale(1.06) translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+
+.rhm-tile-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  text-align: center;
+  color: rgba(0,0,0,0.85);
+}
+
+.rhm-tile-name {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.2);
+}
+
+.rhm-tile-risk {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.rhm-tile-pl {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────── */
+.rhm-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 100;
+}
+
+.rhm-tile:hover .rhm-tooltip {
+  opacity: 1;
+}
+
+.rhm-tt-symbol {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.rhm-tt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.rhm-tt-row .up   { color: #00C853; font-weight: 600; }
+.rhm-tt-row .down { color: #FF1744; font-weight: 600; }
+
+.rhm-empty {
+  padding: 40px;
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+}

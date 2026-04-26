@@ -22,6 +22,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ExploreCategory from './pages/ExploreCategory';
 import GlobalIndices from './pages/GlobalIndices';
 import MutualFunds from './pages/MutualFunds';
+import WhatIfSimulator from './pages/WhatIfSimulator';
+import GoalPlanner from './pages/GoalPlanner';
+import TrendAnalysis from './pages/TrendAnalysis';
 import './App.css';
 
 
@@ -48,6 +51,9 @@ function getPageFromPath(pathname) {
   if (pathname.startsWith('/watchlist')) return 'watchlist';
   if (pathname.startsWith('/transactions')) return 'transactions';
   if (pathname.startsWith('/settings')) return 'settings';
+  if (pathname === '/what-if') return 'what_if';
+  if (pathname === '/goals') return 'goals';
+  if (pathname === '/trend-analysis') return 'trend';
   return 'dashboard';
 }
 
@@ -154,6 +160,9 @@ function App() {
     if (page === 'watchlist') navigate('/watchlist');
     if (page === 'transactions') navigate('/transactions');
     if (page === 'settings') navigate('/settings');
+    if (page === 'what_if') navigate('/what-if');
+    if (page === 'goals') navigate('/goals');
+    if (page === 'trend') navigate('/trend-analysis');
   };
 
   const handleSymbolClick = (symbol) => {
@@ -291,6 +300,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <GlobalIndices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/what-if"
+              element={
+                <ProtectedRoute>
+                  <WhatIfSimulator />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/goals"
+              element={
+                <ProtectedRoute>
+                  <GoalPlanner />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/trend-analysis"
+              element={
+                <ProtectedRoute>
+                  <TrendAnalysis portfolioHoldings={holdings} />
                 </ProtectedRoute>
               }
             />
