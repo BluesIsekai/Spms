@@ -1,5 +1,5 @@
-import { supabase } from "./supabaseClient";
 import { inferCurrencyFromSymbol } from "../utils/currency";
+import { supabase } from "./supabaseClient";
 
 /** Throw a clear error if called without Supabase configured. */
 function requireSupabase() {
@@ -52,7 +52,7 @@ export async function upsertHolding({ userId, symbol, quantity, averageBuyPrice,
                 quantity,
                 average_buy_price: averageBuyPrice,
             },
-            { onConflict: "user_id,stock_symbol" },
+            { onConflict: ["user_id", "stock_symbol"] },
         )
         .select();
     if (error) throw error;
@@ -169,7 +169,7 @@ export async function recordTransaction({
     const newBalance = normalizedType === "BUY" ? currentBalance - totalAmount : currentBalance + totalAmount;
     const { error: walletUpsertError } = await supabase
         .from("paper_wallet")
-        .upsert({ user_id: resolvedUserId, virtual_balance: newBalance }, { onConflict: "user_id" });
+        .upsert({ user_id: resolvedUserId, virtual_balance: newBalance }, { onConflict: ["user_id"] });
     if (walletUpsertError) throw walletUpsertError;
 
     // 4. Insert transaction record
@@ -233,7 +233,7 @@ export async function resetPortfolio(userId, defaultBalance = 100000) {
             virtual_balance: Number(defaultBalance),
             initial_balance: Number(defaultBalance),
         },
-        { onConflict: "user_id" },
+        { onConflict: ["user_id"] },
     );
     if (wError) throw wError;
 }
@@ -255,15 +255,24 @@ export async function fetchWatchlist(userId) {
 /** Add a symbol to the watchlist. */
 export async function addToWatchlist(userId, symbol, companyName = null) {
     const resolvedUserId = await requireAuthUserId(userId);
-    const { data, error } = await supabase
-        .from("watchlist")
-        .upsert(
-            { user_id: resolvedUserId, stock_symbol: symbol, company_name: companyName },
-            { onConflict: "user_id,stock_symbol" },
-        )
-        .select();
-    if (error) throw error;
-    return data;
+    try {
+        const { data, error } = await supabase
+            .from("watchlist")
+            .upsert(
+                { user_id: resolvedUserId, stock_symbol: symbol, company_name: companyName || symbol },
+                { onConflict: ["user_id", "stock_symbol"] },
+            )
+            .select();
+        if (error) {
+            console.error("Watchlist add error:", error);
+            throw error;
+        }
+        console.debug("Watchlist item added/updated:", data);
+        return data;
+    } catch (err) {
+        console.error("addToWatchlist exception:", err);
+        throw err;
+    }
 }
 
 /** Remove a symbol from the watchlist. */
