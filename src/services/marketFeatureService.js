@@ -152,3 +152,100 @@ export async function upsertMutualFundSip({
     if (error) throw error;
     return data;
 }
+
+export async function fetchTrendWatchlist(userId) {
+    if (!requireSupabase()) return [];
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { data, error } = await supabase
+        .from("user_trend_watchlist")
+        .select("*")
+        .eq("user_id", resolvedUserId)
+        .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function upsertTrendWatchlistSymbol({ userId, symbol, displayName = null }) {
+    if (!requireSupabase() || !symbol) return null;
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { data, error } = await supabase
+        .from("user_trend_watchlist")
+        .upsert(
+            {
+                user_id: resolvedUserId,
+                symbol,
+                display_name: displayName || symbol,
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,symbol" },
+        )
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteTrendWatchlistSymbol(userId, symbol) {
+    if (!requireSupabase() || !symbol) return;
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { error } = await supabase
+        .from("user_trend_watchlist")
+        .delete()
+        .eq("user_id", resolvedUserId)
+        .eq("symbol", symbol);
+
+    if (error) throw error;
+}
+
+export async function fetchTrendHiddenHoldings(userId) {
+    if (!requireSupabase()) return [];
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { data, error } = await supabase
+        .from("user_trend_hidden_holdings")
+        .select("*")
+        .eq("user_id", resolvedUserId)
+        .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+}
+
+export async function upsertTrendHiddenHolding({ userId, symbol }) {
+    if (!requireSupabase() || !symbol) return null;
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { data, error } = await supabase
+        .from("user_trend_hidden_holdings")
+        .upsert(
+            {
+                user_id: resolvedUserId,
+                symbol,
+                updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,symbol" },
+        )
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteTrendHiddenHolding(userId, symbol) {
+    if (!requireSupabase() || !symbol) return;
+    const resolvedUserId = await requireAuthUserId(userId);
+
+    const { error } = await supabase
+        .from("user_trend_hidden_holdings")
+        .delete()
+        .eq("user_id", resolvedUserId)
+        .eq("symbol", symbol);
+
+    if (error) throw error;
+}

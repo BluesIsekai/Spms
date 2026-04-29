@@ -1,171 +1,175 @@
 .explore-cat-page {
-  flex: 1;
-  background: #121212;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  height: 100vh;
+    flex: 1;
+    background: #121212;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    height: 100vh;
 }
 
 .ec-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1px solid #2A2A2A;
-  background: #121212;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid #2a2a2a;
+    background: #121212;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 /* Scoped override so the search box fits the header without stretching full width */
 .ec-header .ec-search {
-  width: 240px;
-  flex-shrink: 0;
-  margin-left: auto;
-  height: 36px;
-  /* Inherits all other styles (border, transition, focus-within glow) from Dashboard.css */
+    width: 240px;
+    flex-shrink: 0;
+    margin-left: auto;
+    height: 36px;
+    /* Inherits all other styles (border, transition, focus-within glow) from Dashboard.css */
 }
 
 .ec-back-btn {
-  background: none;
-  border: none;
-  color: #fff;
-  padding: 8px;
-  margin-right: 16px;
-  cursor: pointer;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 8px;
+    margin-right: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .ec-back-btn:hover {
-  background: #2A2A2A;
+    background: #2a2a2a;
 }
 
 .ec-title {
-  font-size: 20px;
-  font-weight: 500;
-  margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0;
 }
 
 .ec-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
 }
 
 .ec-count {
-  font-size: 13px;
-  color: #999;
+    font-size: 13px;
+    color: #999;
 }
 
 .ec-filter-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .ec-filter-box label {
-  font-size: 13px;
-  color: #999;
+    font-size: 13px;
+    color: #999;
 }
 
 .ec-select {
-  background: #1E1E1E;
-  color: #fff;
-  border: 1px solid #333;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  outline: none;
-  cursor: pointer;
+    background: #1e1e1e;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
 }
 
 .ec-select:hover {
-  border-color: #555;
+    border-color: #555;
 }
 
 .ec-list {
-  display: flex;
-  flex-direction: column;
-  padding: 0 20px 24px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px 24px;
 }
 
 .ec-loading {
-  text-align: center;
-  padding: 40px;
-  color: #999;
+    text-align: center;
+    padding: 40px;
+    color: #999;
 }
 
 .ec-list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #1E1E1E;
-  cursor: pointer;
-  transition: background 0.15s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid #1e1e1e;
+    cursor: pointer;
+    transition: background 0.15s;
 }
 
 .ec-list-item:hover {
-  background: #1A1A1A;
+    background: #1a1a1a;
 }
 
 .ec-item-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .ec-item-icon {
-  width: 40px;
-  height: 40px;
-  background: #2A2A2A;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 16px;
+    width: 40px;
+    height: 40px;
+    background: #2a2a2a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 16px;
 }
 
 .ec-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .ec-item-name {
-  font-size: 15px;
-  font-weight: 500;
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .ec-item-symbol {
-  font-size: 12px;
-  color: #999;
+    font-size: 12px;
+    color: #999;
 }
 
 .ec-item-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
 }
 
 .ec-item-val {
-  font-size: 15px;
-  font-weight: 500;
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .ec-item-subval {
-  font-size: 12px;
-  font-weight: 500;
+    font-size: 12px;
+    font-weight: 500;
 }
 
-.ec-item-subval.up { color: #00D09C; }
-.ec-item-subval.down { color: #EB5B3C; }
+.ec-item-subval.up {
+    color: #00d09c;
+}
+.ec-item-subval.down {
+    color: #eb5b3c;
+}
