@@ -449,6 +449,27 @@ function FundSkeleton() {
     );
 }
 
+function normalizeSipRow(row) {
+    if (!row) return null;
+    const nextPaymentDate = row.nextPaymentDate || row.next_payment_at || null;
+    const parsedNextPaymentDate = nextPaymentDate
+        ? new Date(nextPaymentDate).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+          })
+        : "—";
+
+    return {
+        ...row,
+        schemeName: row.schemeName || row.scheme_name,
+        deductionDate: row.deductionDate || row.deduction_day,
+        nextPaymentDate: parsedNextPaymentDate,
+        amount: Number(row.amount || 0),
+        status: row.status || "Active",
+    };
+}
+
 // ── Module-level cache ─────────────────────────────────────────────────────
 const fundDetailCache = {};
 
@@ -485,11 +506,14 @@ export default function MutualFunds({ appPrices = {} }) {
     useEffect(() => {
         if (user?.id) {
             fetchMutualFundSips(user.id)
-                .then(rows => setUserSips(rows || []))
+                .then(rows => setUserSips((rows || []).map(normalizeSipRow).filter(Boolean)))
                 .catch(() => {
                     try {
                         const stored = localStorage.getItem(`spms_user_sips_${user.id}`);
-                        if (stored) setUserSips(JSON.parse(stored));
+                        if (stored) {
+                            const parsed = JSON.parse(stored);
+                            setUserSips((parsed || []).map(normalizeSipRow).filter(Boolean));
+                        }
                     } catch (e) {}
                 });
         }
@@ -570,7 +594,7 @@ export default function MutualFunds({ appPrices = {} }) {
 
             if (savedSip) {
                 const refreshedSips = await fetchMutualFundSips(user.id);
-                setUserSips(refreshedSips || []);
+                setUserSips((refreshedSips || []).map(normalizeSipRow).filter(Boolean));
             } else {
                 setUserSips(updatedSips);
                 localStorage.setItem(`spms_user_sips_${user.id}`, JSON.stringify(updatedSips));
@@ -1140,7 +1164,12 @@ export default function MutualFunds({ appPrices = {} }) {
                                     </div>
                                 ) : (
                                     visibleFunds.map(f => (
-                                        <AllFundRow key={f.schemeCode} fund={f} details={fundDetails[f.schemeCode]} />
+                                        <AllFundRow
+                                            key={f.schemeCode}
+                                            fund={f}
+                                            details={fundDetails[f.schemeCode]}
+                                            onStartSip={handleStartSipClick}
+                                        />
                                     ))
                                 )}
                             </div>
