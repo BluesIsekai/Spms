@@ -1,8 +1,3 @@
--- ╔══════════════════════════════════════════════════════════════╗
--- ║   SPMS — Supabase PostgreSQL Schema                          ║
--- ║   Run this in: Supabase Dashboard → SQL Editor               ║
--- ╚══════════════════════════════════════════════════════════════╝
-
 -- Enable UUID extension (already enabled by default in Supabase)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

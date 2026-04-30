@@ -1,8 +1,3 @@
--- ╔══════════════════════════════════════════════════════════════╗
--- ║   SPMS — Market Feature Tables                              ║
--- ║   Separate schema for searchable instruments and user data   ║
--- ╚══════════════════════════════════════════════════════════════╝
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ─── Shared instrument catalog ────────────────────────────────
