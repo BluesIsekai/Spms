@@ -1,8 +1,3 @@
--- ╔══════════════════════════════════════════════════════════════╗
--- ║  Complete User Deletion SQL                                  ║
--- ║  Run this in Supabase Dashboard → SQL Editor                ║
--- ╚══════════════════════════════════════════════════════════════╝
-
 -- To completely remove a user, you MUST delete from auth.users
 -- This will cascade delete from public.users automatically
 

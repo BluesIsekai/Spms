@@ -1,7 +1,3 @@
--- ╔══════════════════════════════════════════════════════════════╗
--- ║  Fix Email Confirmation Issues in Supabase                  ║
--- ║  Run this script in Supabase Dashboard → SQL Editor         ║
--- ╚══════════════════════════════════════════════════════════════╝
 
 -- OPTION 1: Confirm all existing users (for development/testing)
 -- This marks all users as email-confirmed so they can login freely

@@ -1,8 +1,3 @@
--- ╔══════════════════════════════════════════════════════════════╗
--- ║   SPMS — Supabase Seed Data                                  ║
--- ║   Run this in: Supabase Dashboard → SQL Editor               ║
--- ╚══════════════════════════════════════════════════════════════╝
-
 INSERT INTO public.stocks_master (symbol, company_name, exchange, yahoo_symbol, sector)
 VALUES 
 ('RELIANCE', 'Reliance Industries', 'NSE', 'RELIANCE.NS', 'Energy'),

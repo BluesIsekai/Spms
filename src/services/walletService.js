@@ -40,7 +40,7 @@ export async function fetchWallet(userId) {
 /**
  * Initialize a default paper wallet with 1,00,000 INR
  */
-export async function initializeWallet(userId, balance = 100000.0) {
+export async function initializeWallet(userId, balance = 10000000.0) {
     const resolvedUserId = await requireAuthUserId(userId);
     const { data, error } = await supabase
         .from("paper_wallet")
